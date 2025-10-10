@@ -17,3 +17,4 @@ class Account(Base):
 
     #Relationships-Parent
     stocks: Mapped[List["AccountStock"]] = relationship(back_populates="account")
+    
