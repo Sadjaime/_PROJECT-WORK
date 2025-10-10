@@ -1,0 +1,23 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Env files
+.env
+.env.*
+
+# Database file
+fintech.db
+*.sqlite
+*.sqlite3
+
+# IDE/editor
+.vscode/
+.idea/
+.DS_Store
