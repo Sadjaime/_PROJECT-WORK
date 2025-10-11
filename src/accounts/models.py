@@ -18,4 +18,4 @@ class Account(Base):
 
     #Relationships-Parent
     positions: Mapped[List["Position"]] = relationship("Position", back_populates="account") # type: ignore
-    transactions: Mapped[List["Transaction"]] = relationship("Transaction", back_populates="account") # type: ignore
+    trades: Mapped[List["Trade"]] = relationship("Trade", back_populates="account") # type: ignore

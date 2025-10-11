@@ -20,11 +20,11 @@ async def get_accounts(session: AsyncSession = Depends(get_async_session)):
     result = query_result.unique().all()
     return result
 
-
 @router.post("/", response_model=AccountResponse)
 async def create_account(payload: AccountCreate, session: AsyncSession = Depends(get_async_session)):
     new_account = Account(
-        name = payload.name
+        name = payload.name,
+        user_id = payload.user_id
     )
     session.add(new_account)
     try:
@@ -59,7 +59,7 @@ async def update_account(account_id: int, payload: AccountUpdate, session: Async
         raise HTTPException(status_code=400, detail="Email already in use")
     return result
 
-@router.delete("/user_id", status_code=204)
+@router.delete("/", status_code=204)
 async def delete_account(account_id: int, payload: AccountUpdate, session: AsyncSession = Depends(get_async_session)):
     query = select(Account).where(Account.id==account_id)
     query_result = await session.scalars(query)

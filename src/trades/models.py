@@ -4,8 +4,8 @@ from src.database import Base
 from typing import List
 from datetime import datetime
 
-class Transaction(Base):
-    __tablename__ = "transactions"
+class Trade(Base):
+    __tablename__ = "trades"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
@@ -16,5 +16,5 @@ class Transaction(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships-Child
-    account: Mapped["Account"] = relationship(back_populates="transactions") # type: ignore
-    stock: Mapped["Stock"] = relationship(back_populates="transactions") # type: ignore
+    account: Mapped["Account"] = relationship("Account",back_populates="trades") # type: ignore
+    stock: Mapped["Stock"] = relationship("Stock",back_populates="trades") # type: ignore

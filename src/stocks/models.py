@@ -12,5 +12,5 @@ class Stock(Base):
     average_price: Mapped[float] = mapped_column(Float, default=0.0)
 
     #Relationships-Parent
-    positions: Mapped[List["Position"]] = relationship(back_populates="stock") # type: ignore
-    transactions: Mapped[List["Transaction"]] = relationship(back_populates="stock") # type: ignore
+    positions: Mapped[List["Position"]] = relationship("Position",back_populates="stock") # type: ignore
+    trades: Mapped[List["Trade"]] = relationship("Trade",back_populates="stock") # type: ignore
