@@ -10,11 +10,12 @@ class Account(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(Text)
-    email: Mapped[str] = mapped_column(Text, unique=True)
-    password: Mapped[str] = mapped_column(Text)  # TODO: store hashed pass instead of plain str
-    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    #Relationships-Child
+    user: Mapped["User"] = relationship(back_populates="accounts") # type: ignore
+
     #Relationships-Parent
-    stocks: Mapped[List["AccountStock"]] = relationship(back_populates="account")
-    
+    positions: Mapped[List["Position"]] = relationship("Position", back_populates="account") # type: ignore
+    transactions: Mapped[List["Transaction"]] = relationship("Transaction", back_populates="account") # type: ignore

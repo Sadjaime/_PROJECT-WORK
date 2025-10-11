@@ -10,6 +10,8 @@ from src.config import settings
 from src.database import Base
 import src.accounts.models
 import src.stocks.models
+import src.transactions.models
+import src.users.models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

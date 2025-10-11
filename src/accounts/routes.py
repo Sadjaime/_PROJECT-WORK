@@ -25,9 +25,7 @@ async def get_accounts(session: AsyncSession = Depends(get_async_session)):
 async def create_account(payload: AccountCreate, session: AsyncSession = Depends(get_async_session)):
     new_account = Account(
         name = payload.name,
-        email = payload.email,
-        password = payload.password,        
-        is_admin = payload.is_admin
+        account_id = payload.id
     )
     session.add(new_account)
     try:

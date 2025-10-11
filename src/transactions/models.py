@@ -10,11 +10,11 @@ class Transaction(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
     stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id", ondelete="CASCADE"))
-    type: Mapped[str] = mapped_column(Text(10))  # es. 'BUY' o 'SELL'
+    type: Mapped[str] = mapped_column(Text)  # es. 'BUY' o 'SELL'
     quantity: Mapped[float] = mapped_column(Float)
     price: Mapped[float] = mapped_column(Float)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    # Relationships
-    account: Mapped["Account"] = relationship(back_populates="transactions")
-    stock: Mapped["Stock"] = relationship(back_populates="transactions")
+    # Relationships-Child
+    account: Mapped["Account"] = relationship(back_populates="transactions") # type: ignore
+    stock: Mapped["Stock"] = relationship(back_populates="transactions") # type: ignore
