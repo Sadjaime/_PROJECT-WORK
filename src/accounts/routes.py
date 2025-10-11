@@ -24,8 +24,7 @@ async def get_accounts(session: AsyncSession = Depends(get_async_session)):
 @router.post("/", response_model=AccountResponse)
 async def create_account(payload: AccountCreate, session: AsyncSession = Depends(get_async_session)):
     new_account = Account(
-        name = payload.name,
-        account_id = payload.id
+        name = payload.name
     )
     session.add(new_account)
     try:

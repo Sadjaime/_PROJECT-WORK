@@ -9,11 +9,13 @@ from src.accounts.models import Account
 from src.users.schemas import UserResponse, UserCreate, UserUpdate
 from src.accounts.schemas import AccountCreate, AccountResponse
 from sqlalchemy.exc import IntegrityError
+from src.accounts.routes import router as accounts_router
 
 router = APIRouter(
     prefix="/users",
     tags=["Users"]
 )
+router.include_router(accounts_router, prefix="/{user_id}/accounts")
 
 @router.get("/", response_model=List[UserResponse])
 async def get_users(session: AsyncSession = Depends(get_async_session)):
@@ -71,17 +73,3 @@ async def delete_user(user_id: int, payload: UserUpdate, session: AsyncSession =
     await session.delete(result)
     await session.commit()
     return None
-
-@router.post("/{user_id}/accounts", response_model=AccountResponse)
-async def create_account_for_user(user_id: int, payload: AccountCreate, session: AsyncSession = Depends(get_async_session)):
-    new_account = Account(
-        user_id = user_id,
-        **payload.model_dump(),
-    )
-    session.add(new_account)
-    try:
-        await session.commit()
-        await session.refresh(new_account)
-    except IntegrityError:
-        raise HTTPException(status_code=400, detail="Account already exists")
-    return new_account

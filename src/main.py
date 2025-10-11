@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from pydantic import BaseModel, Field
 
-from src.accounts.routes import router as accounts_router
+
 from src.stocks.routes import router as stock_router
 from src.users.routes import router as user_router
 from src.config import settings
@@ -16,7 +16,6 @@ app = FastAPI(
     title=settings.app_name
 )
 
-app.include_router(accounts_router)
 app.include_router(stock_router)
 app.include_router(user_router)
 
