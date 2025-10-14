@@ -1,38 +1,33 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from pydantic import BaseModel, Field
+from src.config import settings
 
+from src.users.routes import router as user_router
 from src.accounts.routes import router as account_router
 from src.stocks.routes import router as stock_router
-from src.users.routes import router as user_router
-from src.config import settings
-from src.database import Base
-from src.accounts.models import Account
-from src.stocks.models import Stock
-from src.positions.models import Position
-from src.trades.models import Trade
+from src.trades.routes import router as trades_router
+from src.positions.routes import router as positions_router
 
+app = FastAPI(title=settings.app_name, description=settings.description, version="1.0.0")
 
-app = FastAPI(
-    title=settings.app_name
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change to specific origins in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-app.include_router(stock_router)
 app.include_router(user_router)
 app.include_router(account_router)
+app.include_router(stock_router)
+app.include_router(trades_router)
+app.include_router(positions_router)
 
 
-#Accounts
-    #get_balance
-    #get_stocks
-    #get_interests
-
-#Transactions
-    #get_transactions
-    #create_transactions
-
-#Stocks
-    #get_stocks
-    #buy_stock
-    #sell stock
-
+@app.get("/", tags=["Root"])
+async def root():
+    return {
+        "message": f"Welcome to {settings.app_name} API",
+    }

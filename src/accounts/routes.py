@@ -1,71 +1,37 @@
-from fastapi import APIRouter
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from src.database import get_async_session
+from typing import List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
+from src.database import get_async_session
 from src.accounts.models import Account
 from src.accounts.schemas import AccountResponse, AccountCreate, AccountUpdate
-from sqlalchemy.exc import IntegrityError
+from src.accounts.services import AccountService
+from src.users.models import User
 
-router = APIRouter(
-    prefix="/accounts",
-    tags=["Accounts"]
-)
+router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
 @router.get("/", response_model=List[AccountResponse])
 async def get_accounts(session: AsyncSession = Depends(get_async_session)):
-    query = select(Account)
-    query_result = await session.scalars(query)
-    result = query_result.unique().all()
+    result = await AccountService.get_all_accounts(session)
     return result
 
-@router.post("/", response_model=AccountResponse)
+@router.post("/", response_model=AccountResponse, status_code=201)
 async def create_account(payload: AccountCreate, session: AsyncSession = Depends(get_async_session)):
-    new_account = Account(
-        name = payload.name,
-        user_id = payload.user_id
-    )
-    session.add(new_account)
-    try:
-        await session.commit()
-    except IntegrityError:
-        raise HTTPException(status_code=400, detail="Email already in use")
+    new_account = await AccountService.create_account(payload, session)
     return new_account
 
 @router.get("/{account_id}", response_model=AccountResponse)
 async def get_account(account_id: int, session: AsyncSession = Depends(get_async_session)):
-    query = select(Account).where(Account.id==account_id)
-    query_result = await session.scalars(query)
-    result = query_result.first()
-    if not result:
-        raise HTTPException(status_code=404, detail="Account not found")
+    result = await AccountService.get_account_summary(account_id ,session)
     return result
 
 @router.patch("/{account_id}", response_model=AccountResponse)
 async def update_account(account_id: int, payload: AccountUpdate, session: AsyncSession = Depends(get_async_session)):
-    query = select(Account).where(Account.id==account_id)
-    query_result = await session.scalars(query)
-    result = query_result.first()
-    if not result:
-        raise HTTPException(status_code=404, detail="Account not found")
-    
-    for field, value in payload.model_dump().items():
-        if value is not None:
-            setattr(result, field, value)
-    try:
-        await session.commit()
-    except IntegrityError:
-        raise HTTPException(status_code=400, detail="Email already in use")
+    result = await AccountService.update_account(account_id, payload, session)
     return result
 
-@router.delete("/", status_code=204)
-async def delete_account(account_id: int, payload: AccountUpdate, session: AsyncSession = Depends(get_async_session)):
-    query = select(Account).where(Account.id==account_id)
-    query_result = await session.scalars(query)
-    result = query_result.first()
-    if not result:
-        raise HTTPException(status_code=404, detail="Account not found")
-    await session.delete(result)
-    await session.commit()
+@router.delete("/{account_id}", status_code=204)
+async def delete_account(account_id: int, session: AsyncSession = Depends(get_async_session)):
+    await AccountService.delete_account(account_id, session)
     return None

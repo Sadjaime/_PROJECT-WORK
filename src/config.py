@@ -8,6 +8,7 @@ env_file_path = os.path.join(current_directory, "..", ".env")
 
 class Settings(BaseSettings):
     app_name: str
+    description: str
     model_config= SettingsConfigDict(env_file=env_file_path)
 
     db_host: str

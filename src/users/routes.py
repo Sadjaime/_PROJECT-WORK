@@ -1,73 +1,47 @@
-from fastapi import APIRouter
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from src.database import get_async_session
-from sqlalchemy import select
+from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.database import get_async_session
 from src.users.models import User
-from src.accounts.models import Account
-from src.users.schemas import UserResponse, UserCreate, UserUpdate
-from src.accounts.schemas import AccountCreate, AccountResponse
-from sqlalchemy.exc import IntegrityError
-from src.accounts.routes import router as accounts_router
+from src.users.schemas import (UserResponse, UserCreate, UserUpdate, UserDetailResponse, UserWithAccountsResponse)
+from src.users.services import UserService
+from src.accounts.services import AccountService
 
-router = APIRouter(
-    prefix="/users",
-    tags=["Users"]
-)
+router = APIRouter(prefix="/users",tags=["Users"])
+
 
 @router.get("/", response_model=List[UserResponse])
 async def get_users(session: AsyncSession = Depends(get_async_session)):
-    query = select(User)
-    query_result = await session.scalars(query)
-    result = query_result.unique().all()
-    return result
+    users = await UserService.get_all_users(session)
+    return users
 
-@router.post("/", response_model=UserResponse)
+@router.post("/", response_model=UserResponse, status_code=201)
 async def create_user(payload: UserCreate, session: AsyncSession = Depends(get_async_session)):
-    new_user = User(**payload.model_dump())
-    session.add(new_user)
-    try:
-        await session.commit()
-        await session.refresh(new_user)
-    except IntegrityError:
-        raise HTTPException(status_code=400, detail="Email already in use")
-    return new_user
+    user = await UserService.create_user(payload, session)
+    return user
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int, session: AsyncSession = Depends(get_async_session)):
-    query = select(User).where(User.id==user_id)
-    query_result = await session.scalars(query)
-    result = query_result.first()
-    if not result:
-        raise HTTPException(status_code=404, detail="User not found")
-    return result
+    user = await UserService.get_user_by_id(user_id, session)
+    return user
+
+@router.get("/{user_id}/details", response_model=UserDetailResponse)
+async def get_user_details(user_id: int, session: AsyncSession = Depends(get_async_session)):
+    details = await UserService.get_user_with_details(user_id, session)
+    return details
+
+@router.get("/{user_id}/accounts")
+async def get_user_accounts(user_id: int, session: AsyncSession = Depends(get_async_session)):
+    accounts = await AccountService.get_user_accounts(user_id, session)
+    return accounts
 
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(user_id: int, payload: UserUpdate, session: AsyncSession = Depends(get_async_session)):
-    query = select(User).where(User.id==user_id)
-    query_result = await session.scalars(query)
-    result = query_result.first()
-    if not result:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    for field, value in payload.model_dump().items():
-        if value is not None:
-            setattr(result, field, value)
-    try:
-        await session.commit()
-    except IntegrityError:
-        raise HTTPException(status_code=400, detail="Email already in use")
-    return result
+    user = await UserService.update_user(user_id, payload, session)
+    return user
 
-@router.delete("/user_id", status_code=204)
-async def delete_user(user_id: int, payload: UserUpdate, session: AsyncSession = Depends(get_async_session)):
-    query = select(User).where(User.id==user_id)
-    query_result = await session.scalars(query)
-    result = query_result.first()
-    if not result:
-        raise HTTPException(status_code=404, detail="User not found")
-    await session.delete(result)
-    await session.commit()
+
+@router.delete("/{user_id}", status_code=204)
+async def delete_user(user_id: int, session: AsyncSession = Depends(get_async_session)):
+    await UserService.delete_user(user_id, session)
     return None
-
