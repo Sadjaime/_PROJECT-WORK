@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { User, Wallet, TrendingUp, Plus, Edit2, Trash2, Eye, EyeOff, LogOut, DollarSign, ArrowUpRight, ArrowDownRight, Menu, X } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { User, Wallet, TrendingUp, Plus, Edit2, Trash2, Eye, EyeOff, LogOut, DollarSign, ArrowUpRight, ArrowDownRight, Menu, X, ShoppingCart, TrendingDown, History } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -9,6 +9,10 @@ function App() {
   const [users, setUsers] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [stocks, setStocks] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [accountBalances, setAccountBalances] = useState({});
+  const [accountTrades, setAccountTrades] = useState([]);
+  const [accountPositions, setAccountPositions] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showPassword, setShowPassword] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -16,12 +20,17 @@ function App() {
   // Modal states
   const [showUserModal, setShowUserModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [tradeMode, setTradeMode] = useState('BUY_STOCK'); // BUY_STOCK or SELL_STOCK
   const [editingUser, setEditingUser] = useState(null);
   const [editingAccount, setEditingAccount] = useState(null);
 
   // Form states
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', type: 'user' });
   const [accountForm, setAccountForm] = useState({ name: '', user_id: '' });
+  const [tradeForm, setTradeForm] = useState({ account_id: '', stock_id: '', quantity: '', price: '', description: '' });
+  const [depositForm, setDepositForm] = useState({ amount: '', description: '' });
 
   // Loading and error states
   const [loading, setLoading] = useState(false);
@@ -32,6 +41,12 @@ function App() {
       fetchData();
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (selectedAccount) {
+      fetchAccountDetails(selectedAccount.id);
+    }
+  }, [selectedAccount]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -46,15 +61,61 @@ function App() {
         throw new Error('Failed to fetch data');
       }
 
-      setUsers(await usersRes.json());
-      setAccounts(await accountsRes.json());
-      setStocks(await stocksRes.json());
+      const usersData = await usersRes.json();
+      const accountsData = await accountsRes.json();
+      const stocksData = await stocksRes.json();
+
+      setUsers(usersData);
+      setAccounts(accountsData);
+      setStocks(stocksData);
+
+      // Fetch balances for user accounts
+      const userAccountsData = accountsData.filter(a => a.user_id === currentUser.id);
+      await fetchAccountBalances(userAccountsData);
+
       setError(null);
     } catch (error) {
       console.error('Error fetching data:', error);
       setError('Failed to load data. Make sure the backend is running.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAccountBalances = async (userAccounts) => {
+    const balances = {};
+    for (const account of userAccounts) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/trades/account/${account.id}/balance`);
+        if (response.ok) {
+          const data = await response.json();
+          balances[account.id] = data.balance;
+        }
+      } catch (error) {
+        console.error(`Error fetching balance for account ${account.id}:`, error);
+      }
+    }
+    setAccountBalances(balances);
+  };
+
+  const fetchAccountDetails = async (accountId) => {
+    try {
+      const [tradesRes, positionsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/trades/account/${accountId}`),
+        fetch(`${API_BASE_URL}/positions/account/${accountId}`)
+      ]);
+
+      if (tradesRes.ok) {
+        const tradesData = await tradesRes.json();
+        setAccountTrades(tradesData);
+      }
+
+      if (positionsRes.ok) {
+        const positionsData = await positionsRes.json();
+        setAccountPositions(positionsData);
+      }
+    } catch (error) {
+      console.error('Error fetching account details:', error);
     }
   };
 
@@ -99,7 +160,6 @@ function App() {
       setShowUserModal(false);
       setUserForm({ name: '', email: '', password: '', type: 'user' });
       
-      // Auto-login after signup
       if (!currentUser) {
         setCurrentUser(newUser);
         setActiveTab('dashboard');
@@ -132,7 +192,6 @@ function App() {
       const updatedUser = await response.json();
       setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
       
-      // Update current user if editing self
       if (currentUser.id === updatedUser.id) {
         setCurrentUser(updatedUser);
       }
@@ -161,7 +220,6 @@ function App() {
 
       setUsers(users.filter(u => u.id !== userId));
       
-      // Logout if deleting self
       if (currentUser.id === userId) {
         setCurrentUser(null);
       }
@@ -182,8 +240,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           name: accountForm.name, 
-          user_id: parseInt(accountForm.user_id),
-          balance: 0
+          user_id: parseInt(accountForm.user_id)
         })
       });
       
@@ -193,6 +250,7 @@ function App() {
       setAccounts([...accounts, newAccount]);
       setShowAccountModal(false);
       setAccountForm({ name: '', user_id: '' });
+      await fetchData();
     } catch (error) {
       console.error('Error creating account:', error);
       alert('Failed to create account');
@@ -238,9 +296,80 @@ function App() {
       if (!response.ok) throw new Error('Failed to delete account');
 
       setAccounts(accounts.filter(a => a.id !== accountId));
+      await fetchData();
     } catch (error) {
       console.error('Error deleting account:', error);
       alert('Failed to delete account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeposit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/trades/money`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          account_id: selectedAccount.id,
+          type: 'DEPOSIT',
+          amount: parseFloat(depositForm.amount),
+          description: depositForm.description || 'Deposit'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to deposit');
+      }
+
+      setShowDepositModal(false);
+      setDepositForm({ amount: '', description: '' });
+      await fetchData();
+      await fetchAccountDetails(selectedAccount.id);
+      alert('Deposit successful!');
+    } catch (error) {
+      console.error('Error depositing:', error);
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTrade = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/trades/stocks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          account_id: parseInt(tradeForm.account_id),
+          stock_id: parseInt(tradeForm.stock_id),
+          type: tradeMode,
+          quantity: parseFloat(tradeForm.quantity),
+          price: parseFloat(tradeForm.price),
+          description: tradeForm.description || `${tradeMode === 'BUY_STOCK' ? 'Buy' : 'Sell'} stock`
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Trade failed');
+      }
+
+      setShowTradeModal(false);
+      setTradeForm({ account_id: '', stock_id: '', quantity: '', price: '', description: '' });
+      await fetchData();
+      if (selectedAccount) {
+        await fetchAccountDetails(selectedAccount.id);
+      }
+      alert('Trade executed successfully!');
+    } catch (error) {
+      console.error('Error executing trade:', error);
+      alert(error.message);
     } finally {
       setLoading(false);
     }
@@ -270,6 +399,24 @@ function App() {
     setShowAccountModal(true);
   };
 
+  const openTradeModal = (mode, account = null) => {
+    setTradeMode(mode);
+    setTradeForm({ 
+      account_id: account?.id || selectedAccount?.id || '', 
+      stock_id: '', 
+      quantity: '', 
+      price: '', 
+      description: '' 
+    });
+    setShowTradeModal(true);
+  };
+
+  const openDepositModal = (account) => {
+    setSelectedAccount(account);
+    setDepositForm({ amount: '', description: '' });
+    setShowDepositModal(true);
+  };
+
   // Login Screen
   if (!currentUser) {
     return (
@@ -295,7 +442,7 @@ function App() {
   }
 
   const userAccounts = accounts.filter(a => a.user_id === currentUser.id);
-  const totalBalance = userAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  const totalBalance = Object.values(accountBalances).reduce((sum, balance) => sum + balance, 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -340,7 +487,7 @@ function App() {
       <nav className={`bg-white border-b border-gray-200 ${mobileMenuOpen ? 'block' : 'hidden'} sm:block`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:space-x-8">
-            {['dashboard', 'accounts', 'stocks', 'profile'].map(tab => (
+            {['dashboard', 'accounts', 'trading', 'stocks', 'profile'].map(tab => (
               <button
                 key={tab}
                 onClick={() => {
@@ -383,17 +530,39 @@ function App() {
             userAccounts={userAccounts}
             totalBalance={totalBalance}
             stocks={stocks}
+            accountBalances={accountBalances}
+            accountTrades={accountTrades}
+            onSelectAccount={setSelectedAccount}
           />
         )}
         {!loading && activeTab === 'accounts' && (
           <AccountsTab
             accounts={userAccounts}
+            accountBalances={accountBalances}
             onCreateAccount={openCreateAccountModal}
             onEditAccount={openEditAccountModal}
             onDeleteAccount={handleDeleteAccount}
+            onDeposit={openDepositModal}
+            onSelectAccount={(account) => {
+              setSelectedAccount(account);
+              setActiveTab('trading');
+            }}
           />
         )}
-        {!loading && activeTab === 'stocks' && <StocksTab stocks={stocks} />}
+        {!loading && activeTab === 'trading' && (
+          <TradingTab
+            accounts={userAccounts}
+            stocks={stocks}
+            selectedAccount={selectedAccount}
+            setSelectedAccount={setSelectedAccount}
+            accountTrades={accountTrades}
+            accountPositions={accountPositions}
+            accountBalances={accountBalances}
+            onTrade={openTradeModal}
+            onDeposit={openDepositModal}
+          />
+        )}
+        {!loading && activeTab === 'stocks' && <StocksTab stocks={stocks} onTrade={openTradeModal} accounts={userAccounts} />}
         {!loading && activeTab === 'profile' && (
           <ProfileTab
             user={currentUser}
@@ -431,6 +600,30 @@ function App() {
             setEditingAccount(null);
           }}
           users={users}
+          loading={loading}
+        />
+      )}
+
+      {showTradeModal && (
+        <TradeModal
+          mode={tradeMode}
+          form={tradeForm}
+          setForm={setTradeForm}
+          onSubmit={handleTrade}
+          onClose={() => setShowTradeModal(false)}
+          accounts={userAccounts}
+          stocks={stocks}
+          loading={loading}
+        />
+      )}
+
+      {showDepositModal && (
+        <DepositModal
+          account={selectedAccount}
+          form={depositForm}
+          setForm={setDepositForm}
+          onSubmit={handleDeposit}
+          onClose={() => setShowDepositModal(false)}
           loading={loading}
         />
       )}
@@ -526,19 +719,48 @@ function LoginScreen({ onLogin, onSignup }) {
 }
 
 // Dashboard Tab
-function DashboardTab({ userAccounts, totalBalance, stocks }) {
-  const mockPerformanceData = [
-    { month: 'Jan', balance: 3200 },
-    { month: 'Feb', balance: 3800 },
-    { month: 'Mar', balance: 4200 },
-    { month: 'Apr', balance: 3900 },
-    { month: 'May', balance: 4800 },
-    { month: 'Jun', balance: 5200 }
-  ];
+function DashboardTab({ userAccounts, totalBalance, stocks, accountBalances, accountTrades, onSelectAccount }) {
+  // Generate portfolio performance data from actual trades
+  const generatePerformanceData = () => {
+    if (!accountTrades || accountTrades.length === 0) {
+      return [];
+    }
+
+    // Group trades by month
+    const monthlyData = {};
+    let runningBalance = 0;
+
+    accountTrades
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+      .forEach(trade => {
+        const date = new Date(trade.timestamp);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const monthName = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+
+        if (trade.type === 'DEPOSIT') {
+          runningBalance += trade.amount;
+        } else if (trade.type === 'WITHDRAW') {
+          runningBalance -= trade.amount;
+        } else if (trade.type === 'BUY_STOCK') {
+          runningBalance -= trade.amount;
+        } else if (trade.type === 'SELL_STOCK') {
+          runningBalance += trade.amount;
+        }
+
+        monthlyData[monthKey] = {
+          month: monthName,
+          balance: runningBalance
+        };
+      });
+
+    return Object.values(monthlyData).slice(-6); // Last 6 months
+  };
+
+  const performanceData = generatePerformanceData();
 
   const accountsData = userAccounts.map(acc => ({
     name: acc.name.substring(0, 15),
-    balance: acc.balance || 0
+    balance: accountBalances[acc.id] || 0
   }));
 
   return (
@@ -590,18 +812,28 @@ function DashboardTab({ userAccounts, totalBalance, stocks }) {
             <TrendingUp className="w-5 h-5 mr-2 text-blue-600" />
             Portfolio Performance
           </h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={mockPerformanceData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                formatter={(value) => [`$${value}`, 'Balance']}
-              />
-              <Line type="monotone" dataKey="balance" stroke="#2563eb" strokeWidth={3} dot={{ fill: '#2563eb', r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          {performanceData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={performanceData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                  formatter={(value) => [`${value.toFixed(2)}`, 'Balance']}
+                />
+                <Line type="monotone" dataKey="balance" stroke="#2563eb" strokeWidth={3} dot={{ fill: '#2563eb', r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-gray-400">
+              <div className="text-center">
+                <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No transaction history yet</p>
+                <p className="text-sm">Start trading to see your performance</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Accounts Distribution */}
@@ -610,7 +842,7 @@ function DashboardTab({ userAccounts, totalBalance, stocks }) {
             <Wallet className="w-5 h-5 mr-2 text-blue-600" />
             Accounts Distribution
           </h3>
-          {accountsData.length > 0 ? (
+          {accountsData.length > 0 && accountsData.some(a => a.balance > 0) ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={accountsData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -618,7 +850,7 @@ function DashboardTab({ userAccounts, totalBalance, stocks }) {
                 <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value) => [`$${value}`, 'Balance']}
+                  formatter={(value) => [`${value.toFixed(2)}`, 'Balance']}
                 />
                 <Bar dataKey="balance" fill="#3b82f6" radius={[8, 8, 0, 0]} />
               </BarChart>
@@ -627,34 +859,11 @@ function DashboardTab({ userAccounts, totalBalance, stocks }) {
             <div className="flex items-center justify-center h-64 text-gray-400">
               <div className="text-center">
                 <Wallet className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No accounts yet</p>
+                <p>No balances yet</p>
+                <p className="text-sm">Deposit funds to get started</p>
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
-          <p className="text-sm text-gray-500 mb-1">Avg Balance</p>
-          <p className="text-xl font-bold text-gray-900">
-            ${userAccounts.length > 0 ? (totalBalance / userAccounts.length).toFixed(2) : '0.00'}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
-          <p className="text-sm text-gray-500 mb-1">Highest Balance</p>
-          <p className="text-xl font-bold text-gray-900">
-            ${userAccounts.length > 0 ? Math.max(...userAccounts.map(a => a.balance || 0)).toFixed(2) : '0.00'}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
-          <p className="text-sm text-gray-500 mb-1">Markets</p>
-          <p className="text-xl font-bold text-green-600">Open</p>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
-          <p className="text-sm text-gray-500 mb-1">Total Stocks</p>
-          <p className="text-xl font-bold text-gray-900">{stocks.length}</p>
         </div>
       </div>
 
@@ -664,7 +873,11 @@ function DashboardTab({ userAccounts, totalBalance, stocks }) {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Accounts</h3>
           <div className="space-y-3">
             {userAccounts.slice(0, 5).map(account => (
-              <div key={account.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+              <div 
+                key={account.id} 
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                onClick={() => onSelectAccount(account)}
+              >
                 <div className="flex items-center space-x-3">
                   <div className="bg-blue-100 p-2 rounded-lg">
                     <Wallet className="w-5 h-5 text-blue-600" />
@@ -675,7 +888,7 @@ function DashboardTab({ userAccounts, totalBalance, stocks }) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-gray-900">${(account.balance || 0).toFixed(2)}</p>
+                  <p className="font-bold text-gray-900">${(accountBalances[account.id] || 0).toFixed(2)}</p>
                   <p className="text-xs text-gray-500">Balance</p>
                 </div>
               </div>
@@ -688,7 +901,7 @@ function DashboardTab({ userAccounts, totalBalance, stocks }) {
 }
 
 // Accounts Tab
-function AccountsTab({ accounts, onCreateAccount, onEditAccount, onDeleteAccount }) {
+function AccountsTab({ accounts, accountBalances, onCreateAccount, onEditAccount, onDeleteAccount, onDeposit, onSelectAccount }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -732,9 +945,23 @@ function AccountsTab({ accounts, onCreateAccount, onEditAccount, onDeleteAccount
               </div>
               <h3 className="font-semibold text-gray-900 text-lg mb-2">{account.name}</h3>
               <p className="text-sm text-gray-500 mb-4">Account ID: {account.id}</p>
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-gray-200 mb-4">
                 <p className="text-sm text-gray-500 mb-1">Current Balance</p>
-                <p className="text-2xl font-bold text-gray-900">${(account.balance || 0).toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-900">${(accountBalances[account.id] || 0).toFixed(2)}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onDeposit(account)}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-semibold"
+                >
+                  Deposit
+                </button>
+                <button
+                  onClick={() => onSelectAccount(account)}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold"
+                >
+                  Trade
+                </button>
               </div>
               <p className="text-xs text-gray-400 mt-4">
                 Created: {new Date(account.created_at).toLocaleDateString()}
@@ -760,8 +987,186 @@ function AccountsTab({ accounts, onCreateAccount, onEditAccount, onDeleteAccount
   );
 }
 
+// Trading Tab
+function TradingTab({ accounts, stocks, selectedAccount, setSelectedAccount, accountTrades, accountPositions, accountBalances, onTrade, onDeposit }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">Trading Center</h2>
+        <p className="text-gray-500 mt-1">Buy and sell stocks from your accounts</p>
+      </div>
+
+      {/* Account Selector */}
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Select Trading Account</label>
+        <select
+          value={selectedAccount?.id || ''}
+          onChange={(e) => {
+            const account = accounts.find(a => a.id === parseInt(e.target.value));
+            setSelectedAccount(account);
+          }}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+        >
+          <option value="">Choose an account...</option>
+          {accounts.map(account => (
+            <option key={account.id} value={account.id}>
+              {account.name} - Balance: ${(accountBalances[account.id] || 0).toFixed(2)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {selectedAccount && (
+        <>
+          {/* Account Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 text-white shadow-lg">
+              <p className="text-green-100 mb-1">Available Balance</p>
+              <p className="text-3xl font-bold">${(accountBalances[selectedAccount.id] || 0).toFixed(2)}</p>
+              <button
+                onClick={() => onDeposit(selectedAccount)}
+                className="mt-4 bg-white text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition font-semibold text-sm"
+              >
+                Deposit Funds
+              </button>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <p className="text-gray-600 mb-1">Total Positions</p>
+              <p className="text-3xl font-bold text-gray-900">{accountPositions.length}</p>
+              <p className="text-sm text-gray-500 mt-2">Active investments</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <p className="text-gray-600 mb-1">Total Transactions</p>
+              <p className="text-3xl font-bold text-gray-900">{accountTrades.length}</p>
+              <p className="text-sm text-gray-500 mt-2">All time</p>
+            </div>
+          </div>
+
+          {/* Trade Actions */}
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                onClick={() => onTrade('BUY_STOCK', selectedAccount)}
+                className="flex items-center justify-center space-x-2 bg-green-600 text-white px-6 py-4 rounded-lg hover:bg-green-700 transition shadow-lg"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                <span className="font-semibold">Buy Stocks</span>
+              </button>
+              <button
+                onClick={() => onTrade('SELL_STOCK', selectedAccount)}
+                className="flex items-center justify-center space-x-2 bg-red-600 text-white px-6 py-4 rounded-lg hover:bg-red-700 transition shadow-lg"
+              >
+                <TrendingDown className="w-5 h-5" />
+                <span className="font-semibold">Sell Stocks</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Current Positions */}
+          {accountPositions.length > 0 && (
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Positions</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Price</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Price</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">P/L</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {accountPositions.map(position => (
+                      <tr key={position.stock_id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 font-medium text-gray-900">{position.stock_name}</td>
+                        <td className="px-4 py-4 text-gray-600">{position.quantity}</td>
+                        <td className="px-4 py-4 text-gray-600">${position.average_purchase_price.toFixed(2)}</td>
+                        <td className="px-4 py-4 text-gray-600">${position.current_market_price.toFixed(2)}</td>
+                        <td className="px-4 py-4 font-semibold text-gray-900">${position.current_value.toFixed(2)}</td>
+                        <td className={`px-4 py-4 font-semibold ${position.unrealized_profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {position.unrealized_profit_loss >= 0 ? '+' : ''}${position.unrealized_profit_loss.toFixed(2)}
+                          <span className="text-sm ml-1">
+                            ({position.unrealized_profit_loss_percentage.toFixed(2)}%)
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Transaction History */}
+          {accountTrades.length > 0 && (
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <History className="w-5 h-5 mr-2 text-blue-600" />
+                Transaction History
+              </h3>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {accountTrades.slice(0, 10).map(trade => (
+                  <div key={trade.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${
+                        trade.type === 'DEPOSIT' ? 'bg-green-100' :
+                        trade.type === 'WITHDRAW' ? 'bg-red-100' :
+                        trade.type === 'BUY_STOCK' ? 'bg-blue-100' :
+                        'bg-orange-100'
+                      }`}>
+                        {trade.type === 'DEPOSIT' && <ArrowUpRight className="w-5 h-5 text-green-600" />}
+                        {trade.type === 'WITHDRAW' && <ArrowDownRight className="w-5 h-5 text-red-600" />}
+                        {trade.type === 'BUY_STOCK' && <ShoppingCart className="w-5 h-5 text-blue-600" />}
+                        {trade.type === 'SELL_STOCK' && <TrendingDown className="w-5 h-5 text-orange-600" />}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{trade.type.replace('_', ' ')}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(trade.timestamp).toLocaleString()}
+                        </p>
+                        {trade.description && (
+                          <p className="text-xs text-gray-400">{trade.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${
+                        trade.type === 'DEPOSIT' || trade.type === 'SELL_STOCK' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {trade.type === 'DEPOSIT' || trade.type === 'SELL_STOCK' ? '+' : '-'}
+                        ${trade.amount.toFixed(2)}
+                      </p>
+                      {trade.quantity && (
+                        <p className="text-sm text-gray-500">{trade.quantity} shares @ ${trade.price?.toFixed(2)}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {!selectedAccount && (
+        <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
+          <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Select an account to start trading</h3>
+          <p className="text-gray-500">Choose an account from the dropdown above</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Stocks Tab
-function StocksTab({ stocks }) {
+function StocksTab({ stocks, onTrade, accounts }) {
   return (
     <div className="space-y-6">
       <div>
@@ -770,63 +1175,49 @@ function StocksTab({ stocks }) {
       </div>
 
       {stocks.length > 0 ? (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stock
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Avg Price
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {stocks.map(stock => (
-                  <tr key={stock.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="bg-green-100 p-2 rounded-lg mr-3">
-                          <TrendingUp className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div className="font-medium text-gray-900">{stock.name}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      #{stock.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-lg font-semibold text-gray-900">
-                        ${stock.average_price.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <span className="w-2 h-2 bg-green-600 rounded-full mr-1"></span>
-                        Available
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button className="text-blue-600 hover:text-blue-800 font-semibold hover:underline">
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {stocks.map(stock => (
+            <div key={stock.id} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-green-100 to-green-200 p-3 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+                </div>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <span className="w-2 h-2 bg-green-600 rounded-full mr-1"></span>
+                  Available
+                </span>
+              </div>
+              
+              <h3 className="font-bold text-gray-900 text-xl mb-2">{stock.name}</h3>
+              <p className="text-sm text-gray-500 mb-4">ID: #{stock.id}</p>
+              
+              <div className="mb-6">
+                <p className="text-sm text-gray-500 mb-1">Current Price</p>
+                <p className="text-3xl font-bold text-gray-900">${stock.average_price.toFixed(2)}</p>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onTrade('BUY_STOCK')}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-semibold"
+                  disabled={accounts.length === 0}
+                >
+                  Buy
+                </button>
+                <button
+                  onClick={() => onTrade('SELL_STOCK')}
+                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold"
+                  disabled={accounts.length === 0}
+                >
+                  Sell
+                </button>
+              </div>
+              
+              {accounts.length === 0 && (
+                <p className="text-xs text-gray-400 mt-2 text-center">Create an account first</p>
+              )}
+            </div>
+          ))}
         </div>
       ) : (
         <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
@@ -908,7 +1299,6 @@ function ProfileTab({ user, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Additional Info Card */}
       <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
         <h4 className="font-semibold text-blue-900 mb-2">Account Security</h4>
         <p className="text-blue-800 text-sm">
@@ -1072,6 +1462,215 @@ function AccountModal({ account, form, setForm, onSubmit, onClose, users, loadin
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 account ? 'Update' : 'Create'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Trade Modal
+function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, loading }) {
+  const selectedStock = stocks.find(s => s.id === parseInt(form.stock_id));
+  const totalAmount = selectedStock && form.quantity ? (selectedStock.average_price * parseFloat(form.quantity)).toFixed(2) : '0.00';
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-gray-900">
+            {mode === 'BUY_STOCK' ? 'Buy Stock' : 'Sell Stock'}
+          </h3>
+          <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+            mode === 'BUY_STOCK' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {mode === 'BUY_STOCK' ? 'BUY' : 'SELL'}
+          </div>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Account</label>
+            <select
+              value={form.account_id}
+              onChange={(e) => setForm({ ...form, account_id: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              required
+            >
+              <option value="">Select account</option>
+              {accounts.map(account => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+            <select
+              value={form.stock_id}
+              onChange={(e) => {
+                const stock = stocks.find(s => s.id === parseInt(e.target.value));
+                setForm({ 
+                  ...form, 
+                  stock_id: e.target.value,
+                  price: stock ? stock.average_price.toString() : ''
+                });
+              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              required
+            >
+              <option value="">Select stock</option>
+              {stocks.map(stock => (
+                <option key={stock.id} value={stock.id}>
+                  {stock.name} - ${stock.average_price.toFixed(2)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={form.quantity}
+              onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              placeholder="0.00"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price per Share</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              placeholder="0.00"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+            <input
+              type="text"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              placeholder="Trading note..."
+            />
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Total Amount:</span>
+              <span className="text-2xl font-bold text-gray-900">${totalAmount}</span>
+            </div>
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`flex-1 text-white px-4 py-2 rounded-lg transition disabled:opacity-50 flex items-center justify-center ${
+                mode === 'BUY_STOCK' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+              }`}
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                mode === 'BUY_STOCK' ? 'Buy Now' : 'Sell Now'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Deposit Modal
+function DepositModal({ account, form, setForm, onSubmit, onClose, loading }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">
+          Deposit Funds
+        </h3>
+
+        {account && (
+          <div className="bg-blue-50 rounded-lg p-4 mb-4">
+            <p className="text-sm text-blue-800">
+              Depositing to: <span className="font-semibold">{account.name}</span>
+            </p>
+          </div>
+        )}
+
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                placeholder="0.00"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+            <input
+              type="text"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              placeholder="Initial deposit, monthly contribution, etc."
+            />
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                'Deposit'
               )}
             </button>
           </div>
