@@ -121,19 +121,34 @@ function App() {
 
   const handleLogin = async (email, password) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/`);
-      if (!response.ok) throw new Error('Failed to fetch users');
+      console.log('Attempting login with:', { email, password }); // Debug
       
-      const allUsers = await response.json();
-      const user = allUsers.find(u => u.email === email);
+      const response = await fetch(`${API_BASE_URL}/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
       
-      if (user && user.password === password) {
-        setCurrentUser(user);
-        setActiveTab('dashboard');
-        setError(null);
-      } else {
+      console.log('Response status:', response.status); // Debug
+      
+      if (response.status === 401) {
+        const errorData = await response.json();
+        console.log('401 Error:', errorData); // Debug
         alert('Invalid email or password');
+        return;
       }
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('Error response:', errorText); // Debug
+        throw new Error('Login failed');
+      }
+      
+      const user = await response.json();
+      console.log('Login successful, user:', user); // Debug
+      setCurrentUser(user);
+      setActiveTab('dashboard');
+      setError(null);
     } catch (error) {
       console.error('Login error:', error);
       alert('Login failed. Make sure the backend is running on http://localhost:8000');
@@ -663,7 +678,7 @@ function LoginScreen({ onLogin, onSignup }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
-              placeholder="your@email.com"
+              placeholder="your@email.it"
               required
             />
           </div>
@@ -1326,7 +1341,7 @@ function UserModal({ user, form, setForm, onSubmit, onClose, showPassword, setSh
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-              placeholder="John Doe"
+              placeholder="Paolo Rossi"
               required={!user}
               minLength={4}
               maxLength={40}
@@ -1340,7 +1355,7 @@ function UserModal({ user, form, setForm, onSubmit, onClose, showPassword, setSh
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-              placeholder="john@example.com"
+              placeholder="paolo@rossi.it"
               required={!user}
             />
           </div>
