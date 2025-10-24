@@ -44,3 +44,7 @@ class UserDetailResponse(UserResponse):
 
 class UserWithAccountsResponse(UserResponse):
     accounts: list = Field(default_factory=list, description="List of user's accounts")
+
+class UserLogin(CustomBase):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=30)

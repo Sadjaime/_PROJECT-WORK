@@ -3,7 +3,7 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_async_session
 from src.users.models import User
-from src.users.schemas import (UserResponse, UserCreate, UserUpdate, UserDetailResponse, UserWithAccountsResponse)
+from src.users.schemas import (UserResponse, UserCreate, UserUpdate, UserDetailResponse, UserLogin)
 from src.users.services import UserService
 from src.accounts.services import AccountService
 
@@ -45,3 +45,10 @@ async def update_user(user_id: int, payload: UserUpdate, session: AsyncSession =
 async def delete_user(user_id: int, session: AsyncSession = Depends(get_async_session)):
     await UserService.delete_user(user_id, session)
     return None
+
+@router.post("/login", response_model=UserResponse)
+async def login(payload: UserLogin, session: AsyncSession = Depends(get_async_session)):
+    user = await UserService.verify_password(payload.email, payload.password, session)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    return user
