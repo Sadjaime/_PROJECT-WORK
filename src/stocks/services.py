@@ -6,6 +6,9 @@ from src.positions.models import Position
 from src.accounts.models import Account
 from src.stocks.schemas import StockCreate, StockUpdate, StockDetailResponse
 from typing import Optional
+from datetime import datetime, timedelta
+import random
+import math
 
 
 class StockService:
@@ -133,3 +136,29 @@ class StockService:
         await session.delete(stock)
         await session.commit()
         return None
+    
+    # Mockup stock history prices
+    @staticmethod
+    def generate_price_history(base_price: float, months: int = 12):
+        history = {}
+        price = base_price
+        trend = random.uniform(-0.01, 0.03)
+        
+        for i in range(months, 0, -1):
+            date = (datetime.now() - timedelta(days=30*i)).strftime('%Y-%m')
+            price *= (1 + trend + random.gauss(0, 0.1))
+            price = max(price, 1.0)
+            history[date] = round(price, 2)        
+        return history
+    
+    @staticmethod
+    async def generate_all_stock_histories(session: AsyncSession):
+        query = select(Stock)
+        result = await session.scalars(query)
+        stocks = result.all()
+        
+        for stock in stocks:
+            stock.price_history = StockService.generate_price_history(stock.average_price)
+        
+        await session.commit()
+        return len(stocks)

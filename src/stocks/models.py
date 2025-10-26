@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, Text, Float, DateTime, func
+from sqlalchemy import Integer, Text, Float, DateTime, func, JSON
 from src.database import Base
 from datetime import datetime
 from typing import List
@@ -12,6 +12,7 @@ class Stock(Base):
     name: Mapped[str] = mapped_column(Text, unique=True, index=True)
     symbol: Mapped[str | None] = mapped_column(Text, unique=True, nullable=True, index=True)
     average_price: Mapped[float] = mapped_column(Float, default=0.0)
+    price_history: Mapped[dict] = mapped_column(JSON, nullable=True, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

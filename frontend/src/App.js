@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import { User, Wallet, TrendingUp, Plus, Edit2, Trash2, Eye, EyeOff, LogOut, DollarSign, ArrowUpRight, ArrowDownRight, Menu, X, ShoppingCart, TrendingDown, History } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area } from 'recharts';
+import { User, Wallet, TrendingUp, Plus, Edit2, Trash2, Eye, EyeOff, LogOut, DollarSign, ArrowUpRight, ArrowDownRight, Menu, X, ShoppingCart, TrendingDown, History, BarChart2 } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -10,6 +10,7 @@ function App() {
   const [accounts, setAccounts] = useState([]);
   const [stocks, setStocks] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const [selectedStock, setSelectedStock] = useState(null);
   const [accountBalances, setAccountBalances] = useState({});
   const [accountTrades, setAccountTrades] = useState([]);
   const [accountPositions, setAccountPositions] = useState([]);
@@ -22,7 +23,8 @@ function App() {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
-  const [tradeMode, setTradeMode] = useState('BUY_STOCK'); // BUY_STOCK or SELL_STOCK
+  const [showStockDetailModal, setShowStockDetailModal] = useState(false);
+  const [tradeMode, setTradeMode] = useState('BUY_STOCK');
   const [editingUser, setEditingUser] = useState(null);
   const [editingAccount, setEditingAccount] = useState(null);
 
@@ -69,7 +71,6 @@ function App() {
       setAccounts(accountsData);
       setStocks(stocksData);
 
-      // Fetch balances for user accounts
       const userAccountsData = accountsData.filter(a => a.user_id === currentUser.id);
       await fetchAccountBalances(userAccountsData);
 
@@ -121,7 +122,7 @@ function App() {
 
   const handleLogin = async (email, password) => {
     try {
-      console.log('Attempting login with:', { email, password }); // Debug
+      console.log('Attempting login with:', { email, password });
       
       const response = await fetch(`${API_BASE_URL}/users/login`, {
         method: 'POST',
@@ -129,23 +130,23 @@ function App() {
         body: JSON.stringify({ email, password })
       });
       
-      console.log('Response status:', response.status); // Debug
+      console.log('Response status:', response.status);
       
       if (response.status === 401) {
         const errorData = await response.json();
-        console.log('401 Error:', errorData); // Debug
+        console.log('401 Error:', errorData);
         alert('Invalid email or password');
         return;
       }
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('Error response:', errorText); // Debug
+        console.log('Error response:', errorText);
         throw new Error('Login failed');
       }
       
       const user = await response.json();
-      console.log('Login successful, user:', user); // Debug
+      console.log('Login successful, user:', user);
       setCurrentUser(user);
       setActiveTab('dashboard');
       setError(null);
@@ -261,11 +262,9 @@ function App() {
       
       if (!response.ok) throw new Error('Failed to create account');
 
-      const newAccount = await response.json();
-      setAccounts([...accounts, newAccount]);
+      await fetchData();
       setShowAccountModal(false);
       setAccountForm({ name: '', user_id: '' });
-      await fetchData();
     } catch (error) {
       console.error('Error creating account:', error);
       alert('Failed to create account');
@@ -310,7 +309,6 @@ function App() {
       
       if (!response.ok) throw new Error('Failed to delete account');
 
-      setAccounts(accounts.filter(a => a.id !== accountId));
       await fetchData();
     } catch (error) {
       console.error('Error deleting account:', error);
@@ -390,30 +388,6 @@ function App() {
     }
   };
 
-  const openEditUserModal = (user) => {
-    setEditingUser(user);
-    setUserForm({ name: user.name, email: user.email, password: '', type: user.type });
-    setShowUserModal(true);
-  };
-
-  const openEditAccountModal = (account) => {
-    setEditingAccount(account);
-    setAccountForm({ name: account.name, user_id: account.user_id });
-    setShowAccountModal(true);
-  };
-
-  const openCreateUserModal = () => {
-    setEditingUser(null);
-    setUserForm({ name: '', email: '', password: '', type: 'user' });
-    setShowUserModal(true);
-  };
-
-  const openCreateAccountModal = () => {
-    setEditingAccount(null);
-    setAccountForm({ name: '', user_id: currentUser?.id || '' });
-    setShowAccountModal(true);
-  };
-
   const openTradeModal = (mode, account = null) => {
     setTradeMode(mode);
     setTradeForm({ 
@@ -432,11 +406,19 @@ function App() {
     setShowDepositModal(true);
   };
 
-  // Login Screen
+  const openStockDetail = (stock) => {
+    setSelectedStock(stock);
+    setShowStockDetailModal(true);
+  };
+
   if (!currentUser) {
     return (
       <>
-        <LoginScreen onLogin={handleLogin} onSignup={openCreateUserModal} />
+        <LoginScreen onLogin={handleLogin} onSignup={() => {
+          setEditingUser(null);
+          setUserForm({ name: '', email: '', password: '', type: 'user' });
+          setShowUserModal(true);
+        }} />
         {showUserModal && (
           <UserModal
             user={null}
@@ -554,8 +536,16 @@ function App() {
           <AccountsTab
             accounts={userAccounts}
             accountBalances={accountBalances}
-            onCreateAccount={openCreateAccountModal}
-            onEditAccount={openEditAccountModal}
+            onCreateAccount={() => {
+              setEditingAccount(null);
+              setAccountForm({ name: '', user_id: currentUser?.id || '' });
+              setShowAccountModal(true);
+            }}
+            onEditAccount={(account) => {
+              setEditingAccount(account);
+              setAccountForm({ name: account.name, user_id: account.user_id });
+              setShowAccountModal(true);
+            }}
             onDeleteAccount={handleDeleteAccount}
             onDeposit={openDepositModal}
             onSelectAccount={(account) => {
@@ -577,11 +567,22 @@ function App() {
             onDeposit={openDepositModal}
           />
         )}
-        {!loading && activeTab === 'stocks' && <StocksTab stocks={stocks} onTrade={openTradeModal} accounts={userAccounts} />}
+        {!loading && activeTab === 'stocks' && (
+          <StocksTab 
+            stocks={stocks} 
+            onTrade={openTradeModal} 
+            accounts={userAccounts}
+            onViewStock={openStockDetail}
+          />
+        )}
         {!loading && activeTab === 'profile' && (
           <ProfileTab
             user={currentUser}
-            onEdit={() => openEditUserModal(currentUser)}
+            onEdit={() => {
+              setEditingUser(currentUser);
+              setUserForm({ name: currentUser.name, email: currentUser.email, password: '', type: currentUser.type });
+              setShowUserModal(true);
+            }}
             onDelete={() => handleDeleteUser(currentUser.id)}
           />
         )}
@@ -642,6 +643,15 @@ function App() {
           loading={loading}
         />
       )}
+
+      {showStockDetailModal && selectedStock && (
+        <StockDetailModal
+          stock={selectedStock}
+          onClose={() => setShowStockDetailModal(false)}
+          onTrade={openTradeModal}
+          accounts={userAccounts}
+        />
+      )}
     </div>
   );
 }
@@ -659,7 +669,7 @@ function LoginScreen({ onLogin, onSignup }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform hover:scale-105 transition-transform duration-300">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <div className="text-center mb-8">
           <div className="inline-block bg-gradient-to-br from-blue-600 to-blue-700 p-4 rounded-2xl mb-4 shadow-lg">
             <DollarSign className="w-12 h-12 text-white" />
@@ -670,36 +680,32 @@ function LoginScreen({ onLogin, onSignup }) {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
-              placeholder="your@email.it"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              placeholder="your@email.com"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 placeholder="••••••••"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -708,7 +714,7 @@ function LoginScreen({ onLogin, onSignup }) {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 shadow-lg"
           >
             Sign In
           </button>
@@ -722,12 +728,6 @@ function LoginScreen({ onLogin, onSignup }) {
             </button>
           </p>
         </div>
-
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-400 text-center">
-            Make sure the backend is running on http://localhost:8000
-          </p>
-        </div>
       </div>
     </div>
   );
@@ -735,13 +735,11 @@ function LoginScreen({ onLogin, onSignup }) {
 
 // Dashboard Tab
 function DashboardTab({ userAccounts, totalBalance, stocks, accountBalances, accountTrades, onSelectAccount }) {
-  // Generate portfolio performance data from actual trades
   const generatePerformanceData = () => {
     if (!accountTrades || accountTrades.length === 0) {
       return [];
     }
 
-    // Group trades by month
     const monthlyData = {};
     let runningBalance = 0;
 
@@ -768,11 +766,10 @@ function DashboardTab({ userAccounts, totalBalance, stocks, accountBalances, acc
         };
       });
 
-    return Object.values(monthlyData).slice(-6); // Last 6 months
+    return Object.values(monthlyData).slice(-6);
   };
 
   const performanceData = generatePerformanceData();
-
   const accountsData = userAccounts.map(acc => ({
     name: acc.name.substring(0, 15),
     balance: accountBalances[acc.id] || 0
@@ -788,7 +785,7 @@ function DashboardTab({ userAccounts, totalBalance, stocks, accountBalances, acc
 
       {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
+        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white shadow-lg">
           <div className="flex items-center justify-between mb-2">
             <p className="text-blue-100">Total Balance</p>
             <Wallet className="w-8 h-8 text-blue-200" />
@@ -797,7 +794,7 @@ function DashboardTab({ userAccounts, totalBalance, stocks, accountBalances, acc
           <p className="text-blue-100 text-sm">Across {userAccounts.length} account{userAccounts.length !== 1 ? 's' : ''}</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform hover:scale-105 transition-transform">
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <p className="text-gray-600">Active Accounts</p>
             <User className="w-8 h-8 text-blue-600" />
@@ -809,7 +806,7 @@ function DashboardTab({ userAccounts, totalBalance, stocks, accountBalances, acc
           </p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform hover:scale-105 transition-transform">
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <p className="text-gray-600">Available Stocks</p>
             <TrendingUp className="w-8 h-8 text-blue-600" />
@@ -821,7 +818,6 @@ function DashboardTab({ userAccounts, totalBalance, stocks, accountBalances, acc
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Performance Chart */}
         <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <TrendingUp className="w-5 h-5 mr-2 text-blue-600" />
@@ -851,7 +847,6 @@ function DashboardTab({ userAccounts, totalBalance, stocks, accountBalances, acc
           )}
         </div>
 
-        {/* Accounts Distribution */}
         <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <Wallet className="w-5 h-5 mr-2 text-blue-600" />
@@ -909,336 +904,6 @@ function DashboardTab({ userAccounts, totalBalance, stocks, accountBalances, acc
               </div>
             ))}
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Accounts Tab
-function AccountsTab({ accounts, accountBalances, onCreateAccount, onEditAccount, onDeleteAccount, onDeposit, onSelectAccount }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Your Accounts</h2>
-          <p className="text-gray-500 mt-1">Manage your investment accounts</p>
-        </div>
-        <button
-          onClick={onCreateAccount}
-          className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl"
-        >
-          <Plus className="w-5 h-5" />
-          <span>New Account</span>
-        </button>
-      </div>
-
-      {accounts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {accounts.map(account => (
-            <div key={account.id} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-3 rounded-lg">
-                  <Wallet className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => onEditAccount(account)}
-                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                    title="Edit account"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onDeleteAccount(account.id)}
-                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                    title="Delete account"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <h3 className="font-semibold text-gray-900 text-lg mb-2">{account.name}</h3>
-              <p className="text-sm text-gray-500 mb-4">Account ID: {account.id}</p>
-              <div className="pt-4 border-t border-gray-200 mb-4">
-                <p className="text-sm text-gray-500 mb-1">Current Balance</p>
-                <p className="text-2xl font-bold text-gray-900">${(accountBalances[account.id] || 0).toFixed(2)}</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onDeposit(account)}
-                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-semibold"
-                >
-                  Deposit
-                </button>
-                <button
-                  onClick={() => onSelectAccount(account)}
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold"
-                >
-                  Trade
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-4">
-                Created: {new Date(account.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
-          <Wallet className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No accounts yet</h3>
-          <p className="text-gray-500 mb-6">Create your first account to start managing your investments</p>
-          <button
-            onClick={onCreateAccount}
-            className="inline-flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-lg"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Create Your First Account</span>
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Trading Tab
-function TradingTab({ accounts, stocks, selectedAccount, setSelectedAccount, accountTrades, accountPositions, accountBalances, onTrade, onDeposit }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Trading Center</h2>
-        <p className="text-gray-500 mt-1">Buy and sell stocks from your accounts</p>
-      </div>
-
-      {/* Account Selector */}
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Select Trading Account</label>
-        <select
-          value={selectedAccount?.id || ''}
-          onChange={(e) => {
-            const account = accounts.find(a => a.id === parseInt(e.target.value));
-            setSelectedAccount(account);
-          }}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-        >
-          <option value="">Choose an account...</option>
-          {accounts.map(account => (
-            <option key={account.id} value={account.id}>
-              {account.name} - Balance: ${(accountBalances[account.id] || 0).toFixed(2)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {selectedAccount && (
-        <>
-          {/* Account Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 text-white shadow-lg">
-              <p className="text-green-100 mb-1">Available Balance</p>
-              <p className="text-3xl font-bold">${(accountBalances[selectedAccount.id] || 0).toFixed(2)}</p>
-              <button
-                onClick={() => onDeposit(selectedAccount)}
-                className="mt-4 bg-white text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition font-semibold text-sm"
-              >
-                Deposit Funds
-              </button>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-              <p className="text-gray-600 mb-1">Total Positions</p>
-              <p className="text-3xl font-bold text-gray-900">{accountPositions.length}</p>
-              <p className="text-sm text-gray-500 mt-2">Active investments</p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-              <p className="text-gray-600 mb-1">Total Transactions</p>
-              <p className="text-3xl font-bold text-gray-900">{accountTrades.length}</p>
-              <p className="text-sm text-gray-500 mt-2">All time</p>
-            </div>
-          </div>
-
-          {/* Trade Actions */}
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={() => onTrade('BUY_STOCK', selectedAccount)}
-                className="flex items-center justify-center space-x-2 bg-green-600 text-white px-6 py-4 rounded-lg hover:bg-green-700 transition shadow-lg"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                <span className="font-semibold">Buy Stocks</span>
-              </button>
-              <button
-                onClick={() => onTrade('SELL_STOCK', selectedAccount)}
-                className="flex items-center justify-center space-x-2 bg-red-600 text-white px-6 py-4 rounded-lg hover:bg-red-700 transition shadow-lg"
-              >
-                <TrendingDown className="w-5 h-5" />
-                <span className="font-semibold">Sell Stocks</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Current Positions */}
-          {accountPositions.length > 0 && (
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Positions</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Price</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Price</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">P/L</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {accountPositions.map(position => (
-                      <tr key={position.stock_id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4 font-medium text-gray-900">{position.stock_name}</td>
-                        <td className="px-4 py-4 text-gray-600">{position.quantity}</td>
-                        <td className="px-4 py-4 text-gray-600">${position.average_purchase_price.toFixed(2)}</td>
-                        <td className="px-4 py-4 text-gray-600">${position.current_market_price.toFixed(2)}</td>
-                        <td className="px-4 py-4 font-semibold text-gray-900">${position.current_value.toFixed(2)}</td>
-                        <td className={`px-4 py-4 font-semibold ${position.unrealized_profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {position.unrealized_profit_loss >= 0 ? '+' : ''}${position.unrealized_profit_loss.toFixed(2)}
-                          <span className="text-sm ml-1">
-                            ({position.unrealized_profit_loss_percentage.toFixed(2)}%)
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Transaction History */}
-          {accountTrades.length > 0 && (
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <History className="w-5 h-5 mr-2 text-blue-600" />
-                Transaction History
-              </h3>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {accountTrades.slice(0, 10).map(trade => (
-                  <div key={trade.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${
-                        trade.type === 'DEPOSIT' ? 'bg-green-100' :
-                        trade.type === 'WITHDRAW' ? 'bg-red-100' :
-                        trade.type === 'BUY_STOCK' ? 'bg-blue-100' :
-                        'bg-orange-100'
-                      }`}>
-                        {trade.type === 'DEPOSIT' && <ArrowUpRight className="w-5 h-5 text-green-600" />}
-                        {trade.type === 'WITHDRAW' && <ArrowDownRight className="w-5 h-5 text-red-600" />}
-                        {trade.type === 'BUY_STOCK' && <ShoppingCart className="w-5 h-5 text-blue-600" />}
-                        {trade.type === 'SELL_STOCK' && <TrendingDown className="w-5 h-5 text-orange-600" />}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{trade.type.replace('_', ' ')}</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(trade.timestamp).toLocaleString()}
-                        </p>
-                        {trade.description && (
-                          <p className="text-xs text-gray-400">{trade.description}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-bold ${
-                        trade.type === 'DEPOSIT' || trade.type === 'SELL_STOCK' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {trade.type === 'DEPOSIT' || trade.type === 'SELL_STOCK' ? '+' : '-'}
-                        ${trade.amount.toFixed(2)}
-                      </p>
-                      {trade.quantity && (
-                        <p className="text-sm text-gray-500">{trade.quantity} shares @ ${trade.price?.toFixed(2)}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {!selectedAccount && (
-        <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
-          <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Select an account to start trading</h3>
-          <p className="text-gray-500">Choose an account from the dropdown above</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Stocks Tab
-function StocksTab({ stocks, onTrade, accounts }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Available Stocks</h2>
-        <p className="text-gray-500 mt-1">Browse and trade available securities</p>
-      </div>
-
-      {stocks.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stocks.map(stock => (
-            <div key={stock.id} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition">
-              <div className="flex items-center justify-between mb-4">
-                <div className="bg-gradient-to-br from-green-100 to-green-200 p-3 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
-                </div>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  <span className="w-2 h-2 bg-green-600 rounded-full mr-1"></span>
-                  Available
-                </span>
-              </div>
-              
-              <h3 className="font-bold text-gray-900 text-xl mb-2">{stock.name}</h3>
-              <p className="text-sm text-gray-500 mb-4">ID: #{stock.id}</p>
-              
-              <div className="mb-6">
-                <p className="text-sm text-gray-500 mb-1">Current Price</p>
-                <p className="text-3xl font-bold text-gray-900">${stock.average_price.toFixed(2)}</p>
-              </div>
-              
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onTrade('BUY_STOCK')}
-                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-semibold"
-                  disabled={accounts.length === 0}
-                >
-                  Buy
-                </button>
-                <button
-                  onClick={() => onTrade('SELL_STOCK')}
-                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold"
-                  disabled={accounts.length === 0}
-                >
-                  Sell
-                </button>
-              </div>
-              
-              {accounts.length === 0 && (
-                <p className="text-xs text-gray-400 mt-2 text-center">Create an account first</p>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
-          <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No stocks available</h3>
-          <p className="text-gray-500">Check back later for trading opportunities</p>
         </div>
       )}
     </div>
@@ -1341,7 +1006,7 @@ function UserModal({ user, form, setForm, onSubmit, onClose, showPassword, setSh
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-              placeholder="Paolo Rossi"
+              placeholder="John Doe"
               required={!user}
               minLength={4}
               maxLength={40}
@@ -1355,7 +1020,7 @@ function UserModal({ user, form, setForm, onSubmit, onClose, showPassword, setSh
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-              placeholder="paolo@rossi.it"
+              placeholder="john@example.com"
               required={!user}
             />
           </div>
@@ -1378,7 +1043,7 @@ function UserModal({ user, form, setForm, onSubmit, onClose, showPassword, setSh
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -1696,3 +1361,430 @@ function DepositModal({ account, form, setForm, onSubmit, onClose, loading }) {
 }
 
 export default App;
+
+// Accounts Tab
+function AccountsTab({ accounts, accountBalances, onCreateAccount, onEditAccount, onDeleteAccount, onDeposit, onSelectAccount }) {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Your Accounts</h2>
+          <p className="text-gray-500 mt-1">Manage your investment accounts</p>
+        </div>
+        <button
+          onClick={onCreateAccount}
+          className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-lg"
+        >
+          <Plus className="w-5 h-5" />
+          <span>New Account</span>
+        </button>
+      </div>
+
+      {accounts.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {accounts.map(account => (
+            <div key={account.id} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-3 rounded-lg">
+                  <Wallet className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => onEditAccount(account)}
+                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onDeleteAccount(account.id)}
+                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <h3 className="font-semibold text-gray-900 text-lg mb-2">{account.name}</h3>
+              <p className="text-sm text-gray-500 mb-4">Account ID: {account.id}</p>
+              <div className="pt-4 border-t border-gray-200 mb-4">
+                <p className="text-sm text-gray-500 mb-1">Current Balance</p>
+                <p className="text-2xl font-bold text-gray-900">${(accountBalances[account.id] || 0).toFixed(2)}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onDeposit(account)}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-semibold"
+                >
+                  Deposit
+                </button>
+                <button
+                  onClick={() => onSelectAccount(account)}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold"
+                >
+                  Trade
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-4">
+                Created: {new Date(account.created_at).toLocaleDateString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
+          <Wallet className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No accounts yet</h3>
+          <p className="text-gray-500 mb-6">Create your first account to start managing your investments</p>
+          <button
+            onClick={onCreateAccount}
+            className="inline-flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Create Your First Account</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Trading Tab
+function TradingTab({ accounts, stocks, selectedAccount, setSelectedAccount, accountTrades, accountPositions, accountBalances, onTrade, onDeposit }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">Trading Center</h2>
+        <p className="text-gray-500 mt-1">Buy and sell stocks from your accounts</p>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Select Trading Account</label>
+        <select
+          value={selectedAccount?.id || ''}
+          onChange={(e) => {
+            const account = accounts.find(a => a.id === parseInt(e.target.value));
+            setSelectedAccount(account);
+          }}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+        >
+          <option value="">Choose an account...</option>
+          {accounts.map(account => (
+            <option key={account.id} value={account.id}>
+              {account.name} - Balance: ${(accountBalances[account.id] || 0).toFixed(2)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {selectedAccount && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 text-white shadow-lg">
+              <p className="text-green-100 mb-1">Available Balance</p>
+              <p className="text-3xl font-bold">${(accountBalances[selectedAccount.id] || 0).toFixed(2)}</p>
+              <button
+                onClick={() => onDeposit(selectedAccount)}
+                className="mt-4 bg-white text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition font-semibold text-sm"
+              >
+                Deposit Funds
+              </button>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <p className="text-gray-600 mb-1">Total Positions</p>
+              <p className="text-3xl font-bold text-gray-900">{accountPositions.length}</p>
+              <p className="text-sm text-gray-500 mt-2">Active investments</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <p className="text-gray-600 mb-1">Total Transactions</p>
+              <p className="text-3xl font-bold text-gray-900">{accountTrades.length}</p>
+              <p className="text-sm text-gray-500 mt-2">All time</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                onClick={() => onTrade('BUY_STOCK', selectedAccount)}
+                className="flex items-center justify-center space-x-2 bg-green-600 text-white px-6 py-4 rounded-lg hover:bg-green-700 transition shadow-lg"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                <span className="font-semibold">Buy Stocks</span>
+              </button>
+              <button
+                onClick={() => onTrade('SELL_STOCK', selectedAccount)}
+                className="flex items-center justify-center space-x-2 bg-red-600 text-white px-6 py-4 rounded-lg hover:bg-red-700 transition shadow-lg"
+              >
+                <TrendingDown className="w-5 h-5" />
+                <span className="font-semibold">Sell Stocks</span>
+              </button>
+            </div>
+          </div>
+
+          {accountPositions.length > 0 && (
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Positions</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Price</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Price</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">P/L</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {accountPositions.map(position => (
+                      <tr key={position.stock_id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 font-medium text-gray-900">{position.stock_name}</td>
+                        <td className="px-4 py-4 text-gray-600">{position.quantity}</td>
+                        <td className="px-4 py-4 text-gray-600">${position.average_purchase_price.toFixed(2)}</td>
+                        <td className="px-4 py-4 text-gray-600">${position.current_market_price.toFixed(2)}</td>
+                        <td className="px-4 py-4 font-semibold text-gray-900">${position.current_value.toFixed(2)}</td>
+                        <td className={`px-4 py-4 font-semibold ${position.unrealized_profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {position.unrealized_profit_loss >= 0 ? '+' : ''}${position.unrealized_profit_loss.toFixed(2)}
+                          <span className="text-sm ml-1">
+                            ({position.unrealized_profit_loss_percentage.toFixed(2)}%)
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {accountTrades.length > 0 && (
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <History className="w-5 h-5 mr-2 text-blue-600" />
+                Transaction History
+              </h3>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {accountTrades.slice(0, 10).map(trade => (
+                  <div key={trade.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${
+                        trade.type === 'DEPOSIT' ? 'bg-green-100' :
+                        trade.type === 'WITHDRAW' ? 'bg-red-100' :
+                        trade.type === 'BUY_STOCK' ? 'bg-blue-100' :
+                        'bg-orange-100'
+                      }`}>
+                        {trade.type === 'DEPOSIT' && <ArrowUpRight className="w-5 h-5 text-green-600" />}
+                        {trade.type === 'WITHDRAW' && <ArrowDownRight className="w-5 h-5 text-red-600" />}
+                        {trade.type === 'BUY_STOCK' && <ShoppingCart className="w-5 h-5 text-blue-600" />}
+                        {trade.type === 'SELL_STOCK' && <TrendingDown className="w-5 h-5 text-orange-600" />}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{trade.type.replace('_', ' ')}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(trade.timestamp).toLocaleString()}
+                        </p>
+                        {trade.description && (
+                          <p className="text-xs text-gray-400">{trade.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${
+                        trade.type === 'DEPOSIT' || trade.type === 'SELL_STOCK' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {trade.type === 'DEPOSIT' || trade.type === 'SELL_STOCK' ? '+' : '-'}
+                        ${trade.amount.toFixed(2)}
+                      </p>
+                      {trade.quantity && (
+                        <p className="text-sm text-gray-500">{trade.quantity} shares @ ${trade.price?.toFixed(2)}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {!selectedAccount && (
+        <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
+          <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Select an account to start trading</h3>
+          <p className="text-gray-500">Choose an account from the dropdown above</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Stocks Tab
+function StocksTab({ stocks, onTrade, accounts, onViewStock }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">Available Stocks</h2>
+        <p className="text-gray-500 mt-1">Browse and trade available securities</p>
+      </div>
+
+      {stocks.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {stocks.map(stock => (
+            <div key={stock.id} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-gradient-to-br from-green-100 to-green-200 p-3 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+                </div>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <span className="w-2 h-2 bg-green-600 rounded-full mr-1"></span>
+                  Available
+                </span>
+              </div>
+              
+              <h3 className="font-bold text-gray-900 text-xl mb-2">{stock.name}</h3>
+              <p className="text-sm text-gray-500 mb-4">Symbol: {stock.symbol || `STK${stock.id}`}</p>
+              
+              <div className="mb-6">
+                <p className="text-sm text-gray-500 mb-1">Current Price</p>
+                <p className="text-3xl font-bold text-gray-900">${stock.average_price.toFixed(2)}</p>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onViewStock(stock)}
+                  className="flex-1 border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition font-semibold flex items-center justify-center"
+                >
+                  <BarChart2 className="w-4 h-4 mr-2" />
+                  View Chart
+                </button>
+                <button
+                  onClick={() => onTrade('BUY_STOCK')}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-semibold"
+                  disabled={accounts.length === 0}
+                >
+                  Trade
+                </button>
+              </div>
+              
+              {accounts.length === 0 && (
+                <p className="text-xs text-gray-400 mt-2 text-center">Create an account first</p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-200">
+          <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No stocks available</h3>
+          <p className="text-gray-500">Check back later for trading opportunities</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Stock Detail Modal with Chart
+function StockDetailModal({ stock, onClose, onTrade, accounts }) {
+  const priceHistory = stock.price_history || {};
+  const historyData = Object.entries(priceHistory)
+    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+    .map(([date, price]) => ({
+      date: new Date(date + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      price: price
+    }));
+
+  const hasHistory = historyData.length > 0;
+  const firstPrice = hasHistory ? historyData[0].price : stock.average_price;
+  const lastPrice = hasHistory ? historyData[historyData.length - 1].price : stock.average_price;
+  const priceChange = lastPrice - firstPrice;
+  const priceChangePercent = firstPrice > 0 ? (priceChange / firstPrice * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-6 w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{stock.name}</h2>
+            <p className="text-gray-500">Symbol: {stock.symbol || `STK${stock.id}`}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-blue-50 rounded-lg p-4">
+            <p className="text-sm text-blue-800 mb-1">Current Price</p>
+            <p className="text-2xl font-bold text-blue-900">${stock.average_price.toFixed(2)}</p>
+          </div>
+          <div className={`rounded-lg p-4 ${priceChange >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+            <p className={`text-sm mb-1 ${priceChange >= 0 ? 'text-green-800' : 'text-red-800'}`}>Change</p>
+            <p className={`text-2xl font-bold ${priceChange >= 0 ? 'text-green-900' : 'text-red-900'}`}>
+              {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)} ({priceChangePercent.toFixed(2)}%)
+            </p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <p className="text-sm text-gray-600 mb-1">Stock ID</p>
+            <p className="text-2xl font-bold text-gray-900">#{stock.id}</p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Price History</h3>
+          {hasHistory ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={historyData}>
+                <defs>
+                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="date" stroke="#6b7280" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                  formatter={(value) => [`${value.toFixed(2)}`, 'Price']}
+                />
+                <Area type="monotone" dataKey="price" stroke="#3b82f6" fillOpacity={1} fill="url(#colorPrice)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-gray-400">
+              <div className="text-center">
+                <BarChart2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No price history available</p>
+                <p className="text-sm">Historical data will appear here</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-4">
+          <button
+            onClick={onClose}
+            className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-semibold"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => {
+              onClose();
+              onTrade('BUY_STOCK');
+            }}
+            className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold"
+            disabled={accounts.length === 0}
+          >
+            Trade This Stock
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,5 +1,5 @@
 from src.schemas import CustomBase
-from pydantic import PositiveInt, Field, field_validator
+from pydantic import PositiveInt, Field, field_validator, PositiveFloat
 from datetime import datetime
 from typing import Optional
 import re
@@ -22,7 +22,8 @@ class StockResponse(CustomBase):
     id: PositiveInt
     name: str
     symbol: Optional[str] = None
-    average_price: float = Field(..., description="Current market price")
+    average_price: PositiveFloat = Field(..., description="Current market price")
+    price_history: Optional[dict] = None
     created_at: datetime
     updated_at: datetime
 
