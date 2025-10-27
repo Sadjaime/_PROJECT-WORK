@@ -64,15 +64,15 @@ function App() {
     if (currentUser) {
       fetchData();
     }
-  }, [currentUser]);
+  }, [currentUser, fetchData ]);
 
   useEffect(() => {
     if (selectedAccount) {
       fetchAccountDetails(selectedAccount.id);
     }
-  }, [selectedAccount]);
+  }, [selectedAccount, fetchAccountDetails]);;
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -98,7 +98,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  },  []);
 
   const fetchAccountBalances = async (userAccounts) => {
   const balancePromises = userAccounts.map(account => 
@@ -119,7 +119,7 @@ function App() {
   setAccountBalances(balances);
   };
 
-  const fetchAccountDetails = async (accountId) => {
+  const fetchAccountDetails = useCallback(async (accountId) => {
     try {
       const [tradesData, positionsData] = await Promise.all([
         tradeService.getAccountTrades(accountId),
@@ -130,7 +130,7 @@ function App() {
     } catch (error) {
       console.error('Error fetching account details:', error);
     }
-  };
+  }, []);
 
   const handleLogin = async (email, password) => {
     try {
