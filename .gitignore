@@ -8,8 +8,10 @@
 /coverage
 .ini
 .drawio
+
 # production
 /build
+.env
 
 # misc
 .DS_Store
