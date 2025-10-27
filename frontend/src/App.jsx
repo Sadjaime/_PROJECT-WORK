@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // Services
 import { userService } from './services/userService';
@@ -101,14 +101,22 @@ function App() {
   };
 
   const fetchAccountBalances = async (userAccounts) => {
-    const balances = {};
-    for (const account of userAccounts) {
-      const balanceData = await accountService.getBalance(account.id);
-      if (balanceData) {
-        balances[account.id] = balanceData.balance;
-      }
-    }
-    setAccountBalances(balances);
+  const balancePromises = userAccounts.map(account => 
+    accountService.getBalance(account.id)
+      .then(balanceData => ({ 
+        id: account.id, 
+        balance: balanceData?.balance || 0 
+      }))
+      .catch(() => ({ id: account.id, balance: 0 }))
+  );
+  
+  const balanceResults = await Promise.all(balancePromises);
+  const balances = {};
+  balanceResults.forEach(({ id, balance }) => {
+    balances[id] = balance;
+  });
+  
+  setAccountBalances(balances);
   };
 
   const fetchAccountDetails = async (accountId) => {
