@@ -53,3 +53,18 @@ async def get_most_traded_stocks(session: AsyncSession = Depends(get_async_sessi
 async def search_stocks(query: str, session: AsyncSession = Depends(get_async_session)):
     stocks_list = await StockService.search_stocks(query, session)
     return stocks_list
+
+@router.get("/performance/top", tags=["Stock Performance"])
+async def get_top_performers(limit: int = 10, session: AsyncSession = Depends(get_async_session)):
+    performers = await StockService.get_top_stocks_performers(session, limit)
+    return {"count": len(performers), "stocks": performers}
+
+@router.get("/performance/worst", tags=["Stock Performance"])
+async def get_worst_performers(limit: int = 10, session: AsyncSession = Depends(get_async_session)):
+    performers = await StockService.get_worst_stocks_performers(session, limit)
+    return {"count": len(performers), "stocks": performers}
+
+@router.get("/performance/overview", tags=["Stock Performance"])
+async def get_market_overview(session: AsyncSession = Depends(get_async_session)):
+    overview = await StockService.get_market_overview(session)
+    return overview

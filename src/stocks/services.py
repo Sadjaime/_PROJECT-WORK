@@ -5,7 +5,7 @@ from src.stocks.models import Stock
 from src.positions.models import Position
 from src.accounts.models import Account
 from src.stocks.schemas import StockCreate, StockUpdate, StockDetailResponse
-from typing import Optional
+from typing import Optional, List, Dict
 from datetime import datetime, timedelta
 import random
 import math
@@ -137,28 +137,92 @@ class StockService:
         await session.commit()
         return None
     
-    # Mockup stock history prices
     @staticmethod
-    def generate_price_history(base_price: float, months: int = 12):
-        history = {}
-        price = base_price
-        trend = random.uniform(-0.01, 0.03)
-        
-        for i in range(months, 0, -1):
-            date = (datetime.now() - timedelta(days=30*i)).strftime('%Y-%m')
-            price *= (1 + trend + random.gauss(0, 0.1))
-            price = max(price, 1.0)
-            history[date] = round(price, 2)        
-        return history
-    
-    @staticmethod
-    async def generate_all_stock_histories(session: AsyncSession):
+    async def get_top_stocks_performers(session: AsyncSession, limit: int = 3) -> List[Dict]:
         query = select(Stock)
         result = await session.scalars(query)
         stocks = result.all()
         
-        for stock in stocks:
-            stock.price_history = StockService.generate_price_history(stock.average_price)
+        performers = []
         
-        await session.commit()
-        return len(stocks)
+        for stock in stocks:
+            if not stock.price_history or len(stock.price_history) < 2:
+                continue
+            sorted_dates = sorted(stock.price_history.keys())            
+            last_price = stock.price_history[sorted_dates[-2]]
+            current_price = stock.price_history[sorted_dates[-1]]            
+            price_change = current_price - last_price
+            price_change_percent = (price_change / last_price * 100) if last_price > 0 else 0
+            
+            performers.append({
+                "id": stock.id,
+                "name": stock.name,
+                "symbol": stock.symbol if hasattr(stock, 'symbol') else f"STK{stock.id}",
+                "current_price": stock.average_price,
+                "last_price": last_price,
+                "current_price": current_price,
+                "price_change": round(price_change, 4),
+                "price_change_percent": round(price_change_percent, 2),
+                "period_start": sorted_dates[-2],
+                "period_end": sorted_dates[-1]
+            })
+        
+        performers.sort(key=lambda x: x["price_change_percent"], reverse=True)
+        
+        return performers[:limit]
+    
+    @staticmethod
+    async def get_worst_stocks_performers(session: AsyncSession, limit: int = 3) -> List[Dict]:
+        query = select(Stock)
+        result = await session.scalars(query)
+        stocks = result.all()
+        
+        performers = []
+        
+        for stock in stocks:
+            if not stock.price_history or len(stock.price_history) < 2:
+                continue            
+            sorted_dates = sorted(stock.price_history.keys())           
+            last_price = stock.price_history[sorted_dates[-2]]
+            current_price = stock.price_history[sorted_dates[-1]]
+            price_change = current_price - last_price
+            price_change_percent = (price_change / last_price * 100) if last_price > 0 else 0
+            
+            performers.append({
+                "id": stock.id,
+                "name": stock.name,
+                "symbol": stock.symbol if hasattr(stock, 'symbol') else f"STK{stock.id}",
+                "current_price": stock.average_price,
+                "last_price": last_price,
+                "current_price": current_price,
+                "price_change": round(price_change, 4),
+                "price_change_percent": round(price_change_percent, 2),
+                "period_start": sorted_dates[-2],
+                "period_end": sorted_dates[-1]
+            })
+        
+        performers.sort(key=lambda x: x["price_change_percent"])
+        
+        return performers[:limit]
+    
+    @staticmethod
+    async def get_market_overview(session: AsyncSession) -> Dict:
+        top_performers = await StockService.get_top_stocks_performers(session, limit=10)
+        worst_performers = await StockService.get_worst_stocks_performers(session, limit=10)        
+        query = select(Stock)
+        result = await session.scalars(query)
+        all_stocks = result.all()        
+        stocks_with_history = [s for s in all_stocks if s.price_history and len(s.price_history) >= 2]        
+        gainers = len([s for s in stocks_with_history if s.price_history and 
+                       list(s.price_history.values())[-1] > list(s.price_history.values())[-2]])
+        losers = len(stocks_with_history) - gainers
+        
+        return {
+            "total_stocks": len(all_stocks),
+            "stocks_with_data": len(stocks_with_history),
+            "gainers": gainers,
+            "losers": losers,
+            "top_performers": top_performers,
+            "worst_performers": worst_performers,
+            "last_updated": datetime.now().isoformat()
+        }
