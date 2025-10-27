@@ -60,18 +60,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (currentUser) {
-      fetchData();
-    }
-  }, [currentUser, fetchData ]);
-
-  useEffect(() => {
-    if (selectedAccount) {
-      fetchAccountDetails(selectedAccount.id);
-    }
-  }, [selectedAccount, fetchAccountDetails]);;
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -132,6 +120,18 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (currentUser) {
+      fetchData();
+    }
+  }, [currentUser, fetchData ]);
+
+  useEffect(() => {
+    if (selectedAccount) {
+      fetchAccountDetails(selectedAccount.id);
+    }
+  }, [selectedAccount, fetchAccountDetails]);;
+  
   const handleLogin = async (email, password) => {
     try {
       const response = await userService.login(email, password);
