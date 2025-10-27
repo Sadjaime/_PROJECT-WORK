@@ -6,7 +6,8 @@
 
 # testing
 /coverage
-
+.ini
+.drawio
 # production
 /build
 
