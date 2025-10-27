@@ -541,7 +541,7 @@ function App() {
             setShowAccountModal(false);
             setEditingAccount(null);
           }}
-          users={users}
+          currentUser={currentUser}
           loading={loading}
         />
       )}
