@@ -24,4 +24,10 @@ export const stockService = {
     }
     return [];
   },
+
+  async getMostTraded(limit = 10) {
+    const response = await apiCall(`/stocks/most-traded?limit=${limit}`);
+    if (response.ok) return response.json();
+    return [];
+  },
 };

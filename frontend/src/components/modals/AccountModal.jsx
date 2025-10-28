@@ -1,6 +1,6 @@
 import React from 'react';
 
-function AccountModal({ account, form, setForm, onSubmit, onClose, users, loading }) {
+function AccountModal({ account, form, setForm, onSubmit, onClose, currentUser, loading }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
@@ -24,26 +24,11 @@ function AccountModal({ account, form, setForm, onSubmit, onClose, users, loadin
             <p className="text-xs text-gray-500 mt-1">Choose a descriptive name for your account</p>
           </div>
 
-          {!account && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Owner</label>
-              <select
-                value={form.user_id}
-                onChange={(e) => setForm({ ...form, user_id: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                required
-              >
-                <option value="">Select account owner</option>
-                {users && users.length > 0 ? (
-                  users.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} ({user.email})
-                    </option>
-                  ))
-                ) : (
-                  <option value="" disabled>No users available</option>
-                )}
-              </select>
+          {!account && currentUser && (
+            <div className="bg-blue-50 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                Account owner: <span className="font-semibold">{currentUser.name}</span>
+              </p>
             </div>
           )}
 

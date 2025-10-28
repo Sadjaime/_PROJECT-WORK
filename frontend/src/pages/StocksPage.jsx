@@ -1,7 +1,7 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart2, Users, Star } from 'lucide-react';
 
-function StocksPage({ stocks, topPerformers, worstPerformers, onTrade, accounts, onViewStock }) {
+function StocksPage({ stocks, topPerformers, worstPerformers, mostTraded, onTrade, accounts, onViewStock }) {
   return (
     <div className="space-y-6">
       <div>
@@ -10,7 +10,7 @@ function StocksPage({ stocks, topPerformers, worstPerformers, onTrade, accounts,
       </div>
 
       {/* Market Performance Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Top Performers */}
         <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -78,6 +78,49 @@ function StocksPage({ stocks, topPerformers, worstPerformers, onTrade, accounts,
               <div className="text-center">
                 <TrendingDown className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>No performance data available</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Most Traded Stocks */}
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Star className="w-5 h-5 mr-2 text-yellow-600" />
+            Most Popular
+          </h3>
+          {mostTraded && mostTraded.length > 0 ? (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {mostTraded.map((item, index) => (
+                <div 
+                  key={item.stock.id} 
+                  className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition cursor-pointer" 
+                  onClick={() => onViewStock(item.stock)}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-yellow-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">{item.stock.name}</p>
+                      <p className="text-xs text-gray-500">{item.stock.symbol || `STK${item.stock.id}`}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center text-yellow-700 mb-1">
+                      <Users className="w-4 h-4 mr-1" />
+                      <span className="font-bold">{item.holder_count}</span>
+                    </div>
+                    <p className="text-xs text-gray-600">{item.total_quantity.toFixed(2)} shares</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-gray-400">
+              <div className="text-center">
+                <Star className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No trading data available</p>
               </div>
             </div>
           )}

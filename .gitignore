@@ -28,3 +28,4 @@ addDailyPriceHistory.py
 migrate_transfers.py
 migrate_add_avg_price.py
 populate_db.py
+comprehensive_trade_generator.py

@@ -22,15 +22,51 @@ async def create_stock(payload: StockCreate, session: AsyncSession = Depends(get
     return new_stock
 
 
+@router.get("/performance/top", tags=["Stock Performance"])
+async def get_top_performers(limit: int = 10, session: AsyncSession = Depends(get_async_session)):
+    performers = await StockService.get_top_stocks_performers(session, limit)
+    return {"count": len(performers), "stocks": performers}
+
+
+@router.get("/performance/worst", tags=["Stock Performance"])
+async def get_worst_performers(limit: int = 10, session: AsyncSession = Depends(get_async_session)):
+    performers = await StockService.get_worst_stocks_performers(session, limit)
+    return {"count": len(performers), "stocks": performers}
+
+
+@router.get("/performance/overview", tags=["Stock Performance"])
+async def get_market_overview(session: AsyncSession = Depends(get_async_session)):
+    overview = await StockService.get_market_overview(session)
+    return overview
+
+
+@router.get("/most-traded", response_model=list[dict])
+async def get_most_traded_stocks(limit: int = 10, session: AsyncSession = Depends(get_async_session)):
+    most_traded_stocks = await StockService.get_most_traded_stocks(session, limit)
+    return most_traded_stocks
+
+
+@router.get("/search", response_model=list[StockResponse])
+async def search_stocks(query: str, session: AsyncSession = Depends(get_async_session)):
+    stocks_list = await StockService.search_stocks(query, session)
+    return stocks_list
+
+
 @router.get("/{stock_id}", response_model=StockResponse)
 async def get_stock(stock_id: int, session: AsyncSession = Depends(get_async_session)):
-    result = StockService.get_stock_with_details(stock_id, session)
+    result = await StockService.get_stock_with_details(stock_id, session)
     return result
+
+
+@router.get("/{stock_id}/holders")
+async def get_stock_holders(stock_id: int, session: AsyncSession = Depends(get_async_session)):
+    stock_holders = await StockService.get_stock_holders(stock_id, session)
+    return stock_holders
 
 
 @router.patch("/{stock_id}", response_model=StockResponse)
 async def update_stock(stock_id: int, payload: StockUpdate, session: AsyncSession = Depends(get_async_session)):
-    stock = StockService.update_stock(stock_id, payload, session)
+    stock = await StockService.update_stock(stock_id, payload, session)
     return stock
 
 
@@ -38,33 +74,3 @@ async def update_stock(stock_id: int, payload: StockUpdate, session: AsyncSessio
 async def delete_stock(stock_id: int, session: AsyncSession = Depends(get_async_session)):
     await StockService.delete_stock(stock_id, session)
     return None
-
-@router.get("/{stock_id}/holders")
-async def get_stock_holders(stock_id: int, session: AsyncSession = Depends(get_async_session)):
-    stock_holders = StockService.get_stock_holders(stock_id, session)
-    return stock_holders
-
-@router.get("/", response_model=list[StockResponse])
-async def get_most_traded_stocks(session: AsyncSession = Depends(get_async_session)):
-    most_traded_stocks = await StockService.get_most_traded_stocks(session)
-    return most_traded_stocks
-
-@router.get("/", response_model=list[StockResponse])
-async def search_stocks(query: str, session: AsyncSession = Depends(get_async_session)):
-    stocks_list = await StockService.search_stocks(query, session)
-    return stocks_list
-
-@router.get("/performance/top", tags=["Stock Performance"])
-async def get_top_performers(limit: int = 10, session: AsyncSession = Depends(get_async_session)):
-    performers = await StockService.get_top_stocks_performers(session, limit)
-    return {"count": len(performers), "stocks": performers}
-
-@router.get("/performance/worst", tags=["Stock Performance"])
-async def get_worst_performers(limit: int = 10, session: AsyncSession = Depends(get_async_session)):
-    performers = await StockService.get_worst_stocks_performers(session, limit)
-    return {"count": len(performers), "stocks": performers}
-
-@router.get("/performance/overview", tags=["Stock Performance"])
-async def get_market_overview(session: AsyncSession = Depends(get_async_session)):
-    overview = await StockService.get_market_overview(session)
-    return overview

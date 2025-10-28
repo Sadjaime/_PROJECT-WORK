@@ -34,6 +34,7 @@ function App() {
   const [stocks, setStocks] = useState([]);
   const [topPerformers, setTopPerformers] = useState([]);
   const [worstPerformers, setWorstPerformers] = useState([]);
+  const [mostTraded, setMostTraded] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [selectedStock, setSelectedStock] = useState(null);
   const [accountBalances, setAccountBalances] = useState({});
@@ -68,15 +69,18 @@ function App() {
   const [error, setError] = useState(null);
 
   const fetchData = useCallback(async () => {
+    if (!currentUser) return;
+    
     setLoading(true);
     setError(null);
     try {
-      const [usersData, accountsData, stocksData, topData, worstData] = await Promise.all([
+      const [usersData, accountsData, stocksData, topData, worstData, mostTradedData] = await Promise.all([
         userService.getAll(),
         accountService.getAll(),
         stockService.getAll(),
         stockService.getTopPerformers(10),
-        stockService.getWorstPerformers(10)
+        stockService.getWorstPerformers(10),
+        stockService.getMostTraded(10)
       ]);
 
       setUsers(usersData);
@@ -84,6 +88,7 @@ function App() {
       setStocks(stocksData);
       setTopPerformers(topData);
       setWorstPerformers(worstData);
+      setMostTraded(mostTradedData);
 
       const userAccountsData = accountsData.filter(a => a.user_id === currentUser.id);
       await fetchAccountBalances(userAccountsData);
@@ -93,25 +98,38 @@ function App() {
     } finally {
       setLoading(false);
     }
-  },  []);
+  }, [currentUser]);
 
   const fetchAccountBalances = async (userAccounts) => {
-  const balancePromises = userAccounts.map(account => 
-    accountService.getBalance(account.id)
-      .then(balanceData => ({ 
-        id: account.id, 
-        balance: balanceData?.balance || 0 
-      }))
-      .catch(() => ({ id: account.id, balance: 0 }))
-  );
-  
-  const balanceResults = await Promise.all(balancePromises);
-  const balances = {};
-  balanceResults.forEach(({ id, balance }) => {
-    balances[id] = balance;
-  });
-  
-  setAccountBalances(balances);
+    try {
+      const balancePromises = userAccounts.map(account => 
+        accountService.getBalance(account.id)
+          .then(balanceData => ({ 
+            id: account.id, 
+            balance: balanceData?.balance || 0 
+          }))
+          .catch((err) => {
+            console.error(`Error fetching balance for account ${account.id}:`, err);
+            return { id: account.id, balance: 0 };
+          })
+      );
+      
+      const balanceResults = await Promise.all(balancePromises);
+      const balances = {};
+      balanceResults.forEach(({ id, balance }) => {
+        balances[id] = balance;
+      });
+      
+      setAccountBalances(balances);
+    } catch (error) {
+      console.error('Error fetching account balances:', error);
+      // Set empty balances rather than failing completely
+      const balances = {};
+      userAccounts.forEach(account => {
+        balances[account.id] = 0;
+      });
+      setAccountBalances(balances);
+    }
   };
 
   const fetchAccountDetails = useCallback(async (accountId) => {
@@ -131,7 +149,7 @@ function App() {
     if (currentUser) {
       fetchData();
     }
-  }, [currentUser, fetchData ]);
+  }, [currentUser, fetchData]);
 
   useEffect(() => {
     if (selectedAccount) {
@@ -532,6 +550,7 @@ function App() {
             stocks={stocks}
             topPerformers={topPerformers}
             worstPerformers={worstPerformers}
+            mostTraded={mostTraded}
             onTrade={openTradeModal} 
             accounts={userAccounts}
             onViewStock={openStockDetail}
