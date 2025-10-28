@@ -2,21 +2,26 @@ import React from 'react';
 import { ShoppingCart, TrendingDown, X } from 'lucide-react';
 
 function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, accountPositions, loading }) {
-  const selectedAccount = accounts.find(a => a.id === parseInt(form.account_id));
-  const selectedStock = stocks.find(s => s.id === parseInt(form.stock_id));
+  // Ensure arrays are defined
+  const safeAccounts = accounts || [];
+  const safeStocks = stocks || [];
+  const safeAccountPositions = accountPositions || [];
+  
+  const selectedAccount = safeAccounts.find(a => a.id === parseInt(form.account_id));
+  const selectedStock = safeStocks.find(s => s.id === parseInt(form.stock_id));
   
   // Get positions for the selected account
-  const accountOwnedStocks = accountPositions
+  const accountOwnedStocks = safeAccountPositions
     .filter(pos => pos.quantity > 0)
     .map(pos => ({
-      ...stocks.find(s => s.id === pos.stock_id),
+      ...safeStocks.find(s => s.id === pos.stock_id),
       ownedQuantity: pos.quantity,
       averagePurchasePrice: pos.average_purchase_price
     }))
     .filter(stock => stock.id); // Filter out any undefined stocks
 
   // Determine which stocks to show based on mode
-  const availableStocks = mode === 'SELL_STOCK' ? accountOwnedStocks : stocks;
+  const availableStocks = mode === 'SELL_STOCK' ? accountOwnedStocks : safeStocks;
   
   const totalAmount = form.quantity && form.price 
     ? (parseFloat(form.quantity) * parseFloat(form.price)).toFixed(2)
@@ -66,7 +71,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
               required
             >
               <option value="">Select an account</option>
-              {accounts.map(account => (
+              {safeAccounts.map(account => (
                 <option key={account.id} value={account.id}>
                   {account.name}
                 </option>
@@ -83,7 +88,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
               value={form.stock_id}
               onChange={(e) => {
                 const stockId = e.target.value;
-                const stock = stocks.find(s => s.id === parseInt(stockId));
+                const stock = safeStocks.find(s => s.id === parseInt(stockId));
                 setForm({ 
                   ...form, 
                   stock_id: stockId,
@@ -106,7 +111,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
               </option>
               {availableStocks.map(stock => (
                 <option key={stock.id} value={stock.id}>
-                  {stock.name} ({stock.symbol || `STK${stock.id}`}) - ${stock.average_price.toFixed(2)}
+                  {stock.name} ({stock.symbol || `STK${stock.id}`}) - ${stock.average_price?.toFixed(2) || '0.00'}
                   {mode === 'SELL_STOCK' && ` (Own: ${stock.ownedQuantity} shares)`}
                 </option>
               ))}
@@ -114,7 +119,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
             {selectedStock && (
               <div className="mt-2 space-y-1">
                 <p className="text-sm text-gray-500">
-                  Current market price: <span className="font-semibold">${selectedStock.average_price.toFixed(2)}</span>
+                  Current market price: <span className="font-semibold">${selectedStock.average_price?.toFixed(2) || '0.00'}</span>
                 </p>
                 {mode === 'SELL_STOCK' && ownedPosition && (
                   <>
@@ -122,7 +127,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
                       You own: <span className="font-semibold">{ownedPosition.ownedQuantity} shares</span>
                     </p>
                     <p className="text-sm text-gray-500">
-                      Avg. purchase price: <span className="font-semibold">${ownedPosition.averagePurchasePrice.toFixed(2)}</span>
+                      Avg. purchase price: <span className="font-semibold">${ownedPosition.averagePurchasePrice?.toFixed(2) || '0.00'}</span>
                     </p>
                   </>
                 )}
