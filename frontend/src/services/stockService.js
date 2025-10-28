@@ -2,7 +2,7 @@ import { apiCall } from './api';
 
 export const stockService = {
   async getAll() {
-    const response = await apiCall('/stocks/stocks');
+    const response = await apiCall('/stocks');
     if (response.ok) return response.json();
     return [];
   },

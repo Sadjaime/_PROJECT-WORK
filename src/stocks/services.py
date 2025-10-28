@@ -158,11 +158,11 @@ class StockService:
                 "id": stock.id,
                 "name": stock.name,
                 "symbol": stock.symbol if hasattr(stock, 'symbol') else f"STK{stock.id}",
-                "current_price": stock.average_price,
-                "last_price": last_price,
                 "current_price": current_price,
+                "last_price": last_price,
                 "price_change": round(price_change, 4),
                 "price_change_percent": round(price_change_percent, 2),
+                "price_history": stock.price_history,
                 "period_start": sorted_dates[-2],
                 "period_end": sorted_dates[-1]
             })
@@ -192,11 +192,11 @@ class StockService:
                 "id": stock.id,
                 "name": stock.name,
                 "symbol": stock.symbol if hasattr(stock, 'symbol') else f"STK{stock.id}",
-                "current_price": stock.average_price,
-                "last_price": last_price,
                 "current_price": current_price,
+                "last_price": last_price,
                 "price_change": round(price_change, 4),
                 "price_change_percent": round(price_change_percent, 2),
+                "price_history": stock.price_history,
                 "period_start": sorted_dates[-2],
                 "period_end": sorted_dates[-1]
             })

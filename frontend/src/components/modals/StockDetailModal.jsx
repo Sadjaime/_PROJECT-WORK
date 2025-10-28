@@ -3,17 +3,27 @@ import { X, BarChart2 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 function StockDetailModal({ stock, onClose, onTrade, accounts }) {
+  // Ensure price_history exists and is an object
   const priceHistory = stock.price_history || {};
+  
   const historyData = Object.entries(priceHistory)
     .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-    .map(([date, price]) => ({
-      date: new Date(date + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-      price: price
-    }));
+    .map(([date, price]) => {
+      // Parse the date properly - format is "YYYY-MM-DD"
+      const parsedDate = new Date(date);
+      
+      return {
+        date: parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        price: price
+      };
+    });
 
   const hasHistory = historyData.length > 0;
-  const firstPrice = hasHistory ? historyData[0].price : stock.average_price;
-  const lastPrice = hasHistory ? historyData[historyData.length - 1].price : stock.average_price;
+  
+  // Use current_price if available (from top/worst performers), otherwise use average_price
+  const currentPrice = stock.current_price || stock.average_price || 0;
+  const firstPrice = hasHistory ? historyData[0].price : currentPrice;
+  const lastPrice = hasHistory ? historyData[historyData.length - 1].price : currentPrice;
   const priceChange = lastPrice - firstPrice;
   const priceChangePercent = firstPrice > 0 ? (priceChange / firstPrice * 100) : 0;
 
@@ -36,7 +46,7 @@ function StockDetailModal({ stock, onClose, onTrade, accounts }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-blue-50 rounded-lg p-4">
             <p className="text-sm text-blue-800 mb-1">Current Price</p>
-            <p className="text-2xl font-bold text-blue-900">${stock.average_price.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-blue-900">${currentPrice.toFixed(2)}</p>
           </div>
           <div className={`rounded-lg p-4 ${priceChange >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
             <p className={`text-sm mb-1 ${priceChange >= 0 ? 'text-green-800' : 'text-red-800'}`}>Change</p>

@@ -7,7 +7,7 @@ from typing import Optional, Literal
 class TradeBase(CustomBase):
     """Base schema for trades"""
     account_id: PositiveInt
-    type: Literal["DEPOSIT", "WITHDRAW", "BUY_STOCK", "SELL_STOCK"]
+    type: Literal["DEPOSIT", "WITHDRAW", "BUY_STOCK", "SELL_STOCK", "TRANSFER_OUT", "TRANSFER_IN"]
     amount: PositiveFloat
     description: Optional[str] = Field(None, max_length=200)
 
@@ -37,6 +37,21 @@ class StockTradeCreate(CustomBase):
         return v
 
 
+class AccountTransferCreate(CustomBase):
+    """Schema for transferring money between accounts"""
+    from_account_id: PositiveInt = Field(..., description="Source account ID")
+    to_account_id: PositiveInt = Field(..., description="Destination account ID")
+    amount: PositiveFloat = Field(..., gt=0, description="Amount to transfer")
+    description: Optional[str] = Field(None, max_length=200, description="Transfer note")
+    
+    @field_validator('to_account_id')
+    @classmethod
+    def validate_different_accounts(cls, v, info):
+        if 'from_account_id' in info.data and v == info.data['from_account_id']:
+            raise ValueError('Cannot transfer to the same account')
+        return v
+
+
 class TradeResponse(CustomBase):
     """Schema for trade responses"""
     id: PositiveInt
@@ -47,10 +62,25 @@ class TradeResponse(CustomBase):
     quantity: Optional[float] = None
     price: Optional[float] = None
     description: Optional[str] = None
+    from_account_id: Optional[PositiveInt] = None
+    to_account_id: Optional[PositiveInt] = None
     timestamp: datetime
 
     class Config:
         from_attributes = True
+
+
+class TransferResponse(CustomBase):
+    """Schema for transfer response"""
+    transfer_id: int
+    from_account_id: int
+    from_account_name: str
+    to_account_id: int
+    to_account_name: str
+    amount: float
+    description: Optional[str]
+    timestamp: datetime
+    status: str = "completed"
 
 
 class BalanceResponse(CustomBase):
@@ -58,3 +88,15 @@ class BalanceResponse(CustomBase):
     account_id: PositiveInt
     balance: float
     last_updated: datetime
+
+
+class DetailedBalanceResponse(CustomBase):
+    """Schema for detailed balance breakdown"""
+    account_id: int
+    balance: float
+    total_deposits: float
+    total_withdrawals: float
+    total_stock_purchases: float
+    total_stock_sales: float
+    total_transfers_out: float
+    total_transfers_in: float

@@ -14,9 +14,13 @@ class Trade(Base):
     stock_id: Mapped[int | None] = mapped_column(ForeignKey("stocks.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     quantity: Mapped[float | None] = mapped_column(Float, nullable=True)
     price: Mapped[float | None] = mapped_column(Float, nullable=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)    
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    from_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)
+    to_account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)
+    
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     #Relationships-Child
-    account: Mapped["Account"] = relationship("Account", back_populates="trades")  # type: ignore
+    account: Mapped["Account"] = relationship("Account", back_populates="trades", foreign_keys=[account_id])  # type: ignore
     stock: Mapped["Stock"] = relationship("Stock", back_populates="trades")  # type: ignore

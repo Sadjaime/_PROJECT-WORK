@@ -4,9 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_async_session
 from src.trades.schemas import (
     MoneyTradeCreate, 
-    StockTradeCreate, 
-    TradeResponse, 
-    BalanceResponse
+    StockTradeCreate,
+    AccountTransferCreate,
+    TradeResponse,
+    TransferResponse,
+    BalanceResponse,
+    DetailedBalanceResponse
 )
 from src.trades.services import TradeService
 from datetime import datetime
@@ -49,10 +52,32 @@ async def create_stock_trade(
     return trade
 
 
+@router.post("/transfer", response_model=TransferResponse, status_code=201)
+async def transfer_between_accounts(
+    payload: AccountTransferCreate,
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Transfer money from one account to another.
+    
+    Can transfer between:
+    - Your own accounts
+    - Your account to another user's account
+    
+    Requires sufficient balance in source account.
+    Creates paired TRANSFER_OUT and TRANSFER_IN transactions.
+    """
+    transfer = await TradeService.transfer_between_accounts(payload, session)
+    return transfer
+
+
 @router.get("/account/{account_id}", response_model=List[TradeResponse])
 async def get_account_trades(
     account_id: int,
-    trade_type: str | None = Query(None, description="Filter by type: DEPOSIT, WITHDRAW, BUY_STOCK, SELL_STOCK"),
+    trade_type: str | None = Query(
+        None, 
+        description="Filter by type: DEPOSIT, WITHDRAW, BUY_STOCK, SELL_STOCK, TRANSFER_IN, TRANSFER_OUT"
+    ),
     session: AsyncSession = Depends(get_async_session)
 ):
     """
@@ -72,7 +97,7 @@ async def get_account_balance(
     """
     Calculate and return the current balance for an account.
     
-    Balance = Sum of all deposits - withdrawals - stock purchases + stock sales
+    Balance = Deposits + Stock Sales + Transfers In - Withdrawals - Stock Purchases - Transfers Out
     """
     balance = await TradeService.calculate_balance(account_id, session)
     
@@ -81,6 +106,34 @@ async def get_account_balance(
         balance=balance,
         last_updated=datetime.now()
     )
+
+
+@router.get("/account/{account_id}/balance/detailed", response_model=DetailedBalanceResponse)
+async def get_detailed_balance(
+    account_id: int,
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Get detailed balance breakdown for an account.
+    
+    Shows all components that make up the account balance.
+    """
+    balance_info = await TradeService.get_detailed_balance(account_id, session)
+    return balance_info
+
+
+@router.get("/account/{account_id}/transfers")
+async def get_account_transfers(
+    account_id: int,
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Get all transfers (incoming and outgoing) for a specific account.
+    
+    Returns detailed information about each transfer including the other account involved.
+    """
+    transfers = await TradeService.get_account_transfers(account_id, session)
+    return {"count": len(transfers), "transfers": transfers}
 
 
 @router.get("/{trade_id}", response_model=TradeResponse)

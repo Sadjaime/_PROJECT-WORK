@@ -23,3 +23,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+addDailyPriceHistory.py
+migrate_transfers.py
+migrate_add_avg_price.py
+populate_db.py

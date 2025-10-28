@@ -17,4 +17,4 @@ class Account(Base):
 
     #Relationships-Parent
     positions: Mapped[list["Position"]] = relationship("Position", back_populates="account",cascade="all, delete-orphan")  # type: ignore
-    trades: Mapped[list["Trade"]] = relationship("Trade", back_populates="account", cascade="all, delete-orphan")  # type: ignore
+    trades: Mapped[list["Trade"]] = relationship("Trade", back_populates="account", cascade="all, delete-orphan", foreign_keys="Trade.account_id")  # type: ignore

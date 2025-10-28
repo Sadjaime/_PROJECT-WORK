@@ -16,6 +16,7 @@ import AccountModal from './components/modals/AccountModal';
 import TradeModal from './components/modals/TradeModal';
 import DepositModal from './components/modals/DepositModal';
 import StockDetailModal from './components/modals/StockDetailModal';
+import TransferModal from './components/modals/TransferModal';
 
 // Pages
 import DashboardPage from './pages/DashboardPage';
@@ -23,6 +24,8 @@ import AccountsPage from './pages/AccountsPage';
 import TradingPage from './pages/TradingPage';
 import StocksPage from './pages/StocksPage';
 import ProfilePage from './pages/ProfilePage';
+import TransfersPage from './pages/TransfersPage';
+
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -49,12 +52,16 @@ function App() {
   const [tradeMode, setTradeMode] = useState('BUY_STOCK');
   const [editingUser, setEditingUser] = useState(null);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  
 
   // Form states
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', type: 'user' });
   const [accountForm, setAccountForm] = useState({ name: '', user_id: '' });
   const [tradeForm, setTradeForm] = useState({ account_id: '', stock_id: '', quantity: '', price: '', description: '' });
   const [depositForm, setDepositForm] = useState({ amount: '', description: '' });
+  const [transferForm, setTransferForm] = useState({from_account_id: '', to_account_id: '', amount: '', description: ''});
+
 
   // Loading and error states
   const [loading, setLoading] = useState(false);
@@ -410,6 +417,36 @@ function App() {
       </>
     );
   }
+  const handleTransfer = async (transferData) => {
+  setLoading(true);
+  try {
+    const response = await tradeService.transferMoney({
+      from_account_id: parseInt(transferData.from_account_id),
+      to_account_id: parseInt(transferData.to_account_id),
+      amount: parseFloat(transferData.amount),
+      description: transferData.description || 'Account transfer'
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Transfer failed');
+    }
+
+    setShowTransferModal(false);
+    await fetchData();
+    alert('Transfer completed successfully!');
+    } catch (error) {
+      console.error('Error transferring money:', error);
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openTransferModal = () => {
+  setTransferForm({ from_account_id: '', to_account_id: '', amount: '', description: '' });
+  setShowTransferModal(true);
+  };
 
   const userAccounts = accounts.filter(a => a.user_id === currentUser.id);
   const totalBalance = Object.values(accountBalances).reduce((sum, balance) => sum + balance, 0);
@@ -501,6 +538,15 @@ function App() {
           />
         )}
 
+        {!loading && activeTab === 'transfers' && (
+          <TransfersPage
+            accounts={userAccounts}
+            allAccounts={accounts}
+            currentUser={currentUser}
+            onOpenTransferModal={openTransferModal}
+          />
+        )}
+
         {!loading && activeTab === 'profile' && (
           <ProfilePage
             user={currentUser}
@@ -576,6 +622,17 @@ function App() {
           onClose={() => setShowStockDetailModal(false)}
           onTrade={openTradeModal}
           accounts={userAccounts}
+        />
+      )}
+      {showTransferModal && (
+        <TransferModal
+          accounts={userAccounts}
+          allAccounts={accounts}
+          currentUser={currentUser}
+          selectedAccount={selectedAccount}
+          onClose={() => setShowTransferModal(false)}
+          onSubmit={handleTransfer}
+          loading={loading}
         />
       )}
     </div>
