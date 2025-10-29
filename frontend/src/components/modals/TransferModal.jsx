@@ -64,7 +64,7 @@ function TransferModal({
             </select>
             {fromAccount && (
               <p className="text-sm text-gray-500 mt-2">
-                Available balance: <span className="font-semibold">${fromAccount.balance?.toFixed(2) || '0.00'}</span>
+                Available balance: <span className="font-semibold">€{fromAccount.balance?.toFixed(2) || '0.00'}</span>
               </p>
             )}
           </div>
@@ -117,7 +117,7 @@ function TransferModal({
             </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">
-                $
+                €
               </span>
               <input
                 type="number"
@@ -167,7 +167,7 @@ function TransferModal({
                 <div className="flex justify-between text-lg pt-2 border-t border-blue-200">
                   <span className="text-blue-800">Amount:</span>
                   <span className="font-bold text-blue-900">
-                    ${parseFloat(formData.amount).toFixed(2)}
+                    €{parseFloat(formData.amount).toFixed(2)}
                   </span>
                 </div>
               </div>

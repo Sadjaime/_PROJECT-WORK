@@ -46,7 +46,7 @@ function StockDetailModal({ stock, onClose, onTrade, accounts }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-blue-50 rounded-lg p-4">
             <p className="text-sm text-blue-800 mb-1">Current Price</p>
-            <p className="text-2xl font-bold text-blue-900">${currentPrice.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-blue-900">€{currentPrice.toFixed(2)}</p>
           </div>
           <div className={`rounded-lg p-4 ${priceChange >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
             <p className={`text-sm mb-1 ${priceChange >= 0 ? 'text-green-800' : 'text-red-800'}`}>Change</p>
@@ -76,7 +76,7 @@ function StockDetailModal({ stock, onClose, onTrade, accounts }) {
                 <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value) => [`$${value.toFixed(2)}`, 'Price']}
+                  formatter={(value) => [`€${value.toFixed(2)}`, 'Price']}
                 />
                 <Area type="monotone" dataKey="price" stroke="#3b82f6" fillOpacity={1} fill="url(#colorPrice)" strokeWidth={2} />
               </AreaChart>

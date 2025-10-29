@@ -20,7 +20,7 @@ function DepositModal({ account, form, setForm, onSubmit, onClose, loading }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
               <input
                 type="number"
                 step="0.01"
