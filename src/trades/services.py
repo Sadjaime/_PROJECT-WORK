@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, func
+from sqlalchemy.dialects.postgresql import insert
 from fastapi import HTTPException
 from src.trades.models import Trade
 from src.accounts.models import Account
@@ -8,6 +9,10 @@ from src.positions.models import Position
 from src.trades.schemas import MoneyTradeCreate, StockTradeCreate, AccountTransferCreate
 from typing import Dict, List
 from datetime import datetime
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class TradeService:
@@ -87,14 +92,13 @@ class TradeService:
                 )
         
         if payload.type == "SELL_STOCK":
-            position_query = select(Position).where(
-                and_(
-                    Position.account_id == payload.account_id,
-                    Position.stock_id == payload.stock_id
-                )
+            position_query = (
+                select(Position)
+                .where(Position.account_id == payload.account_id)
+                .where(Position.stock_id == payload.stock_id)
             )
-            position_result = await session.scalars(position_query)
-            position = position_result.first()
+            position_result = await session.execute(position_query)
+            position = position_result.scalar_one_or_none()
             
             if not position or position.quantity < payload.quantity:
                 available = position.quantity if position else 0
@@ -115,8 +119,8 @@ class TradeService:
         
         session.add(new_trade)
         
-        # Update position BEFORE committing the trade
-        await TradeService._update_position(
+        # Update position using UPSERT
+        await TradeService._update_position_upsert(
             payload.account_id, 
             payload.stock_id, 
             payload.quantity, 
@@ -130,7 +134,7 @@ class TradeService:
         return new_trade
 
     @staticmethod
-    async def _update_position(
+    async def _update_position_upsert(
         account_id: int, 
         stock_id: int, 
         quantity: float, 
@@ -138,51 +142,66 @@ class TradeService:
         trade_type: str, 
         session: AsyncSession
     ):
-        """Update stock position after trade - FIXED VERSION"""
-        # Query for existing position using composite key
-        position_query = select(Position).where(
-            and_(
-                Position.account_id == account_id,
-                Position.stock_id == stock_id
-            )
-        )
-        position_result = await session.scalars(position_query)
-        position = position_result.first()
+        """
+        Update stock position using PostgreSQL's UPSERT (ON CONFLICT)
+        This is GUARANTEED to work regardless of whether position exists
+        """
+        logger.info(f"_update_position_upsert: account={account_id}, stock={stock_id}, "
+                   f"qty={quantity}, price={price}, type={trade_type}")
         
         if trade_type == "BUY_STOCK":
-            if not position:
-                # CREATE new position - no position exists yet
-                position = Position(
-                    account_id=account_id, 
-                    stock_id=stock_id, 
-                    quantity=quantity,
-                    average_purchase_price=price
-                )
-                session.add(position)
-            else:
-                # UPDATE existing position - calculate new average price
-                old_total_cost = position.quantity * position.average_purchase_price
-                new_cost = quantity * price
-                total_cost = old_total_cost + new_cost
-                new_quantity = position.quantity + quantity
-                
-                # Update the existing position object
-                position.average_purchase_price = total_cost / new_quantity if new_quantity > 0 else 0
-                position.quantity = new_quantity
-                # No need to session.add() - object is already tracked
+            # Use PostgreSQL's INSERT ... ON CONFLICT DO UPDATE
+            stmt = insert(Position).values(
+                account_id=account_id,
+                stock_id=stock_id,
+                quantity=quantity,
+                average_purchase_price=price
+            )
+            
+            # If position exists (conflict on primary key), update it
+            stmt = stmt.on_conflict_do_update(
+                index_elements=['account_id', 'stock_id'],
+                set_={
+                    'quantity': Position.quantity + quantity,
+                    'average_purchase_price': (
+                        (Position.quantity * Position.average_purchase_price + quantity * price) /
+                        (Position.quantity + quantity)
+                    ),
+                    'updated_at': func.now()
+                }
+            )
+            
+            logger.info(f"Executing UPSERT for BUY_STOCK")
+            await session.execute(stmt)
+            logger.info(f"UPSERT completed successfully")
         
         elif trade_type == "SELL_STOCK":
+            # For SELL, we need to query and update/delete
+            logger.info(f"Processing SELL_STOCK")
+            
+            position_query = (
+                select(Position)
+                .where(Position.account_id == account_id)
+                .where(Position.stock_id == stock_id)
+            )
+            position_result = await session.execute(position_query)
+            position = position_result.scalar_one_or_none()
+            
             if not position:
-                # This should never happen due to validation above, but just in case
+                logger.error(f"No position found to sell!")
                 raise HTTPException(status_code=400, detail="No position found to sell")
+            
+            logger.info(f"Current position qty: {position.quantity}, selling: {quantity}")
             
             # Reduce quantity
             position.quantity -= quantity
             
             # If all shares sold, delete the position
             if position.quantity <= 0:
+                logger.info(f"All shares sold, deleting position")
                 await session.delete(position)
-            # Otherwise, keep the average purchase price the same
+            else:
+                logger.info(f"Partial sell, remaining: {position.quantity}")
 
     @staticmethod
     async def transfer_between_accounts(payload: AccountTransferCreate, session: AsyncSession) -> Dict:
