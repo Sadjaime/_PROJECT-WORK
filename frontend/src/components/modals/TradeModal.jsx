@@ -128,7 +128,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
       <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className={`p-3 rounded-lg €{
+            <div className={`p-3 rounded-lg ${
               mode === 'BUY_STOCK' ? 'bg-green-100' : 'bg-red-100'
             }`}>
               {mode === 'BUY_STOCK' ? (
@@ -194,8 +194,8 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
               </option>
               {availableStocks.map(stock => (
                 <option key={stock.id} value={stock.id}>
-                  {stock.name} ({stock.symbol || `STK€{stock.id}`}) - €{stock.average_price?.toFixed(2) || '0.00'}
-                  {mode === 'SELL_STOCK' && ` (Own: €{stock.ownedQuantity.toFixed(2)} shares)`}
+                  {stock.name} ({stock.symbol || `STK${stock.id}`}) - €{stock.average_price?.toFixed(2) || '0.00'}
+                  {mode === 'SELL_STOCK' && ` (Own: ${stock.ownedQuantity.toFixed(2)} shares)`}
                 </option>
               ))}
             </select>
@@ -275,7 +275,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
                 min="0.01"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent €{
+                className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent ${
                   mode === 'SELL_STOCK' ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
                 placeholder="0.00"
@@ -312,10 +312,10 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
 
           {/* Trade Summary */}
           {tradeAmount > 0 && calculatedQuantity > 0 && selectedStock && selectedAccount && (
-            <div className={`border-2 rounded-lg p-4 €{
+            <div className={`border-2 rounded-lg p-4 ${
               mode === 'BUY_STOCK' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
             }`}>
-              <h4 className={`font-semibold mb-2 €{
+              <h4 className={`font-semibold mb-2 ${
                 mode === 'BUY_STOCK' ? 'text-green-900' : 'text-red-900'
               }`}>
                 Trade Summary
@@ -325,7 +325,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
                   <span className={mode === 'BUY_STOCK' ? 'text-green-800' : 'text-red-800'}>
                     Account:
                   </span>
-                  <span className={`font-semibold €{
+                  <span className={`font-semibold ${
                     mode === 'BUY_STOCK' ? 'text-green-900' : 'text-red-900'
                   }`}>
                     {selectedAccount.name}
@@ -335,7 +335,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
                   <span className={mode === 'BUY_STOCK' ? 'text-green-800' : 'text-red-800'}>
                     Stock:
                   </span>
-                  <span className={`font-semibold €{
+                  <span className={`font-semibold ${
                     mode === 'BUY_STOCK' ? 'text-green-900' : 'text-red-900'
                   }`}>
                     {selectedStock.name}
@@ -345,7 +345,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
                   <span className={mode === 'BUY_STOCK' ? 'text-green-800' : 'text-red-800'}>
                     Quantity:
                   </span>
-                  <span className={`font-semibold €{
+                  <span className={`font-semibold ${
                     mode === 'BUY_STOCK' ? 'text-green-900' : 'text-red-900'
                   }`}>
                     {calculatedQuantity.toFixed(4)} shares
@@ -355,19 +355,19 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
                   <span className={mode === 'BUY_STOCK' ? 'text-green-800' : 'text-red-800'}>
                     Price per Share:
                   </span>
-                  <span className={`font-semibold €{
+                  <span className={`font-semibold ${
                     mode === 'BUY_STOCK' ? 'text-green-900' : 'text-red-900'
                   }`}>
                     €{pricePerShare.toFixed(2)}
                   </span>
                 </div>
-                <div className={`flex justify-between text-lg pt-2 border-t €{
+                <div className={`flex justify-between text-lg pt-2 border-t ${
                   mode === 'BUY_STOCK' ? 'border-green-200' : 'border-red-200'
                 }`}>
                   <span className={mode === 'BUY_STOCK' ? 'text-green-800' : 'text-red-800'}>
                     Total Amount:
                   </span>
-                  <span className={`font-bold €{
+                  <span className={`font-bold ${
                     mode === 'BUY_STOCK' ? 'text-green-900' : 'text-red-900'
                   }`}>
                     €{totalAmount}
@@ -383,7 +383,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
                     </div>
                     <div className="flex justify-between">
                       <span className="text-red-800">Profit/Loss:</span>
-                      <span className={`font-bold €{
+                      <span className={`font-bold ${
                         tradeAmount >= (ownedPosition.averagePurchasePrice * calculatedQuantity)
                           ? 'text-green-600' 
                           : 'text-red-600'
