@@ -414,7 +414,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
             <button
               type="submit"
               disabled={loading || (mode === 'SELL_STOCK' && calculatedQuantity <= 0)}
-              className={`flex-1 text-white px-6 py-3 rounded-lg transition font-semibold disabled:opacity-50 flex items-center justify-center €{
+              className={`flex-1 text-white px-6 py-3 rounded-lg transition font-semibold disabled:opacity-50 flex items-center justify-center ${
                 mode === 'BUY_STOCK' 
                   ? 'bg-green-600 hover:bg-green-700' 
                   : 'bg-red-600 hover:bg-red-700'
