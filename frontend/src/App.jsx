@@ -59,7 +59,7 @@ function App() {
   // Form states
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', type: 'user' });
   const [accountForm, setAccountForm] = useState({ name: '', user_id: '' });
-  const [tradeForm, setTradeForm] = useState({ account_id: '', stock_id: '', quantity: '', price: '', description: '' });
+  const [tradeForm, setTradeForm] = useState({ account_id: '', stock_id: '', quantity: '', price: '', description: '', tradeAmount: '' });
   const [depositForm, setDepositForm] = useState({ amount: '', description: '' });
   const [transferForm, setTransferForm] = useState({from_account_id: '', to_account_id: '', amount: '', description: ''});
 
@@ -363,7 +363,7 @@ function App() {
       }
 
       setShowTradeModal(false);
-      setTradeForm({ account_id: '', stock_id: '', quantity: '', price: '', description: '' });
+      setTradeForm({ account_id: '', stock_id: '', quantity: '', price: '', description: '', tradeAmount: '' });
       setTradeModalPositions([]); // Clear trade modal positions
       await fetchData();
       if (selectedAccount) {
@@ -388,7 +388,8 @@ function App() {
       stock_id: '', 
       quantity: '', 
       price: '', 
-      description: '' 
+      description: '',
+      tradeAmount: ''
     });
 
     // If selling, fetch positions for the target account
@@ -408,7 +409,8 @@ function App() {
       account_id: accountId, 
       stock_id: '', 
       quantity: '', 
-      price: '' 
+      price: '',
+      tradeAmount: ''
     });
 
     // If in sell mode, fetch positions for the newly selected account
