@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShoppingCart, TrendingDown, X } from 'lucide-react';
 
-function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, accountPositions, loading }) {
+function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, accountPositions, onAccountChange, loading }) {
   // Ensure arrays are defined
   const safeAccounts = accounts || [];
   const safeStocks = stocks || [];
@@ -31,6 +31,19 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
   const ownedPosition = mode === 'SELL_STOCK' 
     ? accountOwnedStocks.find(s => s.id === parseInt(form.stock_id))
     : null;
+
+  // Handle account selection change
+  const handleAccountChange = (e) => {
+    const accountId = e.target.value;
+    
+    // If onAccountChange prop is provided, use it (for fetching new positions)
+    if (onAccountChange) {
+      onAccountChange(accountId);
+    } else {
+      // Fallback to basic form update
+      setForm({ ...form, account_id: accountId, stock_id: '', quantity: '', price: '' });
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -66,7 +79,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
             </label>
             <select
               value={form.account_id}
-              onChange={(e) => setForm({ ...form, account_id: e.target.value, stock_id: '', quantity: '', price: '' })}
+              onChange={handleAccountChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white"
               required
             >
