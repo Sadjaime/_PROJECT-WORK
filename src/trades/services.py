@@ -88,8 +88,10 @@ class TradeService:
         
         if payload.type == "SELL_STOCK":
             position_query = select(Position).where(
-                Position.account_id == payload.account_id, 
-                Position.stock_id == payload.stock_id
+                and_(
+                    Position.account_id == payload.account_id,
+                    Position.stock_id == payload.stock_id
+                )
             )
             position_result = await session.scalars(position_query)
             position = position_result.first()
@@ -112,6 +114,8 @@ class TradeService:
         )
         
         session.add(new_trade)
+        
+        # Update position BEFORE committing the trade
         await TradeService._update_position(
             payload.account_id, 
             payload.stock_id, 
@@ -120,6 +124,7 @@ class TradeService:
             payload.type, 
             session
         )
+        
         await session.commit()
         await session.refresh(new_trade)
         return new_trade
@@ -133,16 +138,20 @@ class TradeService:
         trade_type: str, 
         session: AsyncSession
     ):
-        """Update stock position after trade"""
+        """Update stock position after trade - FIXED VERSION"""
+        # Query for existing position using composite key
         position_query = select(Position).where(
-            Position.account_id == account_id, 
-            Position.stock_id == stock_id
+            and_(
+                Position.account_id == account_id,
+                Position.stock_id == stock_id
+            )
         )
         position_result = await session.scalars(position_query)
         position = position_result.first()
         
-        if not position:
-            if trade_type == "BUY_STOCK":
+        if trade_type == "BUY_STOCK":
+            if not position:
+                # CREATE new position - no position exists yet
                 position = Position(
                     account_id=account_id, 
                     stock_id=stock_id, 
@@ -150,20 +159,30 @@ class TradeService:
                     average_purchase_price=price
                 )
                 session.add(position)
-        else:
-            if trade_type == "BUY_STOCK":
-                # Calculate new average purchase price
+            else:
+                # UPDATE existing position - calculate new average price
                 old_total_cost = position.quantity * position.average_purchase_price
                 new_cost = quantity * price
                 total_cost = old_total_cost + new_cost
                 new_quantity = position.quantity + quantity
+                
+                # Update the existing position object
                 position.average_purchase_price = total_cost / new_quantity if new_quantity > 0 else 0
                 position.quantity = new_quantity
-            elif trade_type == "SELL_STOCK":
-                position.quantity -= quantity
-                # Keep the average purchase price the same when selling
-                if position.quantity <= 0:
-                    await session.delete(position)
+                # No need to session.add() - object is already tracked
+        
+        elif trade_type == "SELL_STOCK":
+            if not position:
+                # This should never happen due to validation above, but just in case
+                raise HTTPException(status_code=400, detail="No position found to sell")
+            
+            # Reduce quantity
+            position.quantity -= quantity
+            
+            # If all shares sold, delete the position
+            if position.quantity <= 0:
+                await session.delete(position)
+            # Otherwise, keep the average purchase price the same
 
     @staticmethod
     async def transfer_between_accounts(payload: AccountTransferCreate, session: AsyncSession) -> Dict:
