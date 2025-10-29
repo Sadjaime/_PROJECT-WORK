@@ -46,6 +46,19 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
   // Total amount calculation
   const totalAmount = tradeAmount.toFixed(2);
 
+  // Automatically update quantity when tradeAmount or price changes
+  useEffect(() => {
+    if (tradeAmount > 0 && pricePerShare > 0) {
+      const newQuantity = (tradeAmount / pricePerShare).toString();
+      if (form.quantity !== newQuantity) {
+        setForm(prevForm => ({
+          ...prevForm,
+          quantity: newQuantity
+        }));
+      }
+    }
+  }, [tradeAmount, pricePerShare]);
+
   // Update form.price when stock is selected
   useEffect(() => {
     if (form.stock_id && selectedStock) {
@@ -98,29 +111,35 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
     }
   };
 
-  // Handle form submission with quantity calculation
+  // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Create a modified form with calculated quantity
-    const modifiedForm = {
-      ...form,
-      quantity: calculatedQuantity.toString()
-    };
+    // Debug: Log the form data being submitted
+    console.log('TradeModal - Submitting form:', {
+      account_id: parseInt(form.account_id),
+      stock_id: parseInt(form.stock_id),
+      type: mode,
+      quantity: parseFloat(form.quantity),
+      price: parseFloat(form.price),
+      description: form.description,
+      calculatedQuantity: calculatedQuantity,
+      tradeAmount: tradeAmount,
+      pricePerShare: pricePerShare
+    });
     
-    // Create a synthetic event with the modified form
-    const syntheticEvent = {
-      ...e,
-      preventDefault: () => {}
-    };
+    // Validation check
+    if (!form.quantity || parseFloat(form.quantity) <= 0) {
+      alert('Invalid quantity. Please enter a trade amount.');
+      return;
+    }
     
-    // Temporarily update form to include calculated quantity
-    setForm(modifiedForm);
+    if (!form.price || parseFloat(form.price) <= 0) {
+      alert('Invalid price. Please select a stock.');
+      return;
+    }
     
-    // Call onSubmit with the values
-    setTimeout(() => {
-      onSubmit(syntheticEvent);
-    }, 0);
+    onSubmit(e);
   };
 
   return (
