@@ -53,7 +53,7 @@ function AccountsPage({
               <p className="text-sm text-gray-500 mb-4">Account ID: {account.id}</p>
               <div className="pt-4 border-t border-gray-200 mb-4">
                 <p className="text-sm text-gray-500 mb-1">Current Balance</p>
-                <p className="text-2xl font-bold text-gray-900">${(accountBalances[account.id] || 0).toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-900">€{(accountBalances[account.id] || 0).toFixed(2)}</p>
               </div>
               <div className="flex gap-2">
                 <button

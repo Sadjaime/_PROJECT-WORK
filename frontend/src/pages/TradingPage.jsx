@@ -32,7 +32,7 @@ function TradingPage({
           <option value="">Choose an account...</option>
           {accounts.map(account => (
             <option key={account.id} value={account.id}>
-              {account.name} - Balance: ${(accountBalances[account.id] || 0).toFixed(2)}
+              {account.name} - Balance: €{(accountBalances[account.id] || 0).toFixed(2)}
             </option>
           ))}
         </select>
@@ -43,7 +43,7 @@ function TradingPage({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 text-white shadow-lg">
               <p className="text-green-100 mb-1">Available Balance</p>
-              <p className="text-3xl font-bold">${(accountBalances[selectedAccount.id] || 0).toFixed(2)}</p>
+              <p className="text-3xl font-bold">€{(accountBalances[selectedAccount.id] || 0).toFixed(2)}</p>
               <button
                 onClick={() => onDeposit(selectedAccount)}
                 className="mt-4 bg-white text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition font-semibold text-sm"
@@ -105,11 +105,11 @@ function TradingPage({
                       <tr key={position.stock_id} className="hover:bg-gray-50">
                         <td className="px-4 py-4 font-medium text-gray-900">{position.stock_name}</td>
                         <td className="px-4 py-4 text-gray-600">{position.quantity}</td>
-                        <td className="px-4 py-4 text-gray-600">${position.average_purchase_price.toFixed(2)}</td>
-                        <td className="px-4 py-4 text-gray-600">${position.current_market_price.toFixed(2)}</td>
-                        <td className="px-4 py-4 font-semibold text-gray-900">${position.current_value.toFixed(2)}</td>
+                        <td className="px-4 py-4 text-gray-600">€{position.average_purchase_price.toFixed(2)}</td>
+                        <td className="px-4 py-4 text-gray-600">€{position.current_market_price.toFixed(2)}</td>
+                        <td className="px-4 py-4 font-semibold text-gray-900">€{position.current_value.toFixed(2)}</td>
                         <td className={`px-4 py-4 font-semibold ${position.unrealized_profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {position.unrealized_profit_loss >= 0 ? '+' : ''}${position.unrealized_profit_loss.toFixed(2)}
+                          {position.unrealized_profit_loss >= 0 ? '+' : ''}€{position.unrealized_profit_loss.toFixed(2)}
                           <span className="text-sm ml-1">
                             ({position.unrealized_profit_loss_percentage.toFixed(2)}%)
                           </span>
@@ -158,10 +158,10 @@ function TradingPage({
                         trade.type === 'DEPOSIT' || trade.type === 'SELL_STOCK' ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {trade.type === 'DEPOSIT' || trade.type === 'SELL_STOCK' ? '+' : '-'}
-                        ${trade.amount.toFixed(2)}
+                        €{trade.amount.toFixed(2)}
                       </p>
                       {trade.quantity && (
-                        <p className="text-sm text-gray-500">{trade.quantity} shares @ ${trade.price?.toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">{trade.quantity} shares @ €{trade.price?.toFixed(2)}</p>
                       )}
                     </div>
                   </div>

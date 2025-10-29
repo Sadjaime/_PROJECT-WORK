@@ -67,7 +67,7 @@ function DashboardPage({
             <p className="text-blue-100">Total Balance</p>
             <Wallet className="w-8 h-8 text-blue-200" />
           </div>
-          <h2 className="text-3xl font-bold mb-1">${totalBalance.toFixed(2)}</h2>
+          <h2 className="text-3xl font-bold mb-1">€{totalBalance.toFixed(2)}</h2>
           <p className="text-blue-100 text-sm">Across {userAccounts.length} account{userAccounts.length !== 1 ? 's' : ''}</p>
         </div>
 
@@ -108,7 +108,7 @@ function DashboardPage({
                 <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value) => [`$${value.toFixed(2)}`, 'Balance']}
+                  formatter={(value) => [`€${value.toFixed(2)}`, 'Balance']}
                 />
                 <Line type="monotone" dataKey="balance" stroke="#2563eb" strokeWidth={3} dot={{ fill: '#2563eb', r: 4 }} />
               </LineChart>
@@ -137,7 +137,7 @@ function DashboardPage({
                 <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value) => [`$${value.toFixed(2)}`, 'Balance']}
+                  formatter={(value) => [`€${value.toFixed(2)}`, 'Balance']}
                 />
                 <Bar dataKey="balance" fill="#3b82f6" radius={[8, 8, 0, 0]} />
               </BarChart>
@@ -175,7 +175,7 @@ function DashboardPage({
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-green-600">+{stock.price_change_percent.toFixed(2)}%</p>
-                    <p className="text-xs text-gray-500">${stock.current_price.toFixed(2)}</p>
+                    <p className="text-xs text-gray-500">€{stock.current_price.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -209,7 +209,7 @@ function DashboardPage({
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-red-600">{stock.price_change_percent.toFixed(2)}%</p>
-                    <p className="text-xs text-gray-500">${stock.current_price.toFixed(2)}</p>
+                    <p className="text-xs text-gray-500">€{stock.current_price.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -246,7 +246,7 @@ function DashboardPage({
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-gray-900">${(accountBalances[account.id] || 0).toFixed(2)}</p>
+                  <p className="font-bold text-gray-900">€{(accountBalances[account.id] || 0).toFixed(2)}</p>
                   <p className="text-xs text-gray-500">Balance</p>
                 </div>
               </div>

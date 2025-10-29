@@ -135,7 +135,7 @@ function TransfersPage({ accounts, onOpenTransferModal }) {
                     <p className={`text-2xl font-bold ${
                       transfer.type === 'incoming' ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {transfer.type === 'incoming' ? '+' : '-'}${transfer.amount.toFixed(2)}
+                      {transfer.type === 'incoming' ? '+' : '-'}€{transfer.amount.toFixed(2)}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       ID: {transfer.transfer_id}

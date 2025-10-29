@@ -32,7 +32,7 @@ function StocksPage({ stocks, topPerformers, worstPerformers, mostTraded, onTrad
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-green-600 text-lg">+{stock.price_change_percent.toFixed(2)}%</p>
-                    <p className="text-sm text-gray-600">${stock.current_price.toFixed(2)}</p>
+                    <p className="text-sm text-gray-600">€{stock.current_price.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -68,7 +68,7 @@ function StocksPage({ stocks, topPerformers, worstPerformers, mostTraded, onTrad
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-red-600 text-lg">{stock.price_change_percent.toFixed(2)}%</p>
-                    <p className="text-sm text-gray-600">${stock.current_price.toFixed(2)}</p>
+                    <p className="text-sm text-gray-600">€{stock.current_price.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -149,7 +149,7 @@ function StocksPage({ stocks, topPerformers, worstPerformers, mostTraded, onTrad
                 
                 <div className="mb-6">
                   <p className="text-sm text-gray-500 mb-1">Current Price</p>
-                  <p className="text-3xl font-bold text-gray-900">${stock.average_price.toFixed(2)}</p>
+                  <p className="text-3xl font-bold text-gray-900">€{stock.average_price.toFixed(2)}</p>
                 </div>
                 
                 <div className="flex gap-2">
