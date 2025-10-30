@@ -39,7 +39,7 @@ function App() {
   const [accountBalances, setAccountBalances] = useState({});
   const [accountTrades, setAccountTrades] = useState([]);
   const [accountPositions, setAccountPositions] = useState([]);
-  const [tradeModalPositions, setTradeModalPositions] = useState([]); // NEW: Separate state for trade modal
+  const [tradeModalPositions, setTradeModalPositions] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showPassword, setShowPassword] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -642,12 +642,12 @@ function App() {
           onSubmit={handleTrade}
           onClose={() => {
             setShowTradeModal(false);
-            setTradeModalPositions([]); // Clear positions when closing
+            setTradeModalPositions([]);
           }}
           accounts={userAccounts}
           stocks={stocks}
-          accountPositions={tradeModalPositions} // Use separate positions state
-          onAccountChange={handleTradeFormAccountChange} // NEW: Pass handler for account changes
+          accountPositions={tradeModalPositions}
+          onAccountChange={handleTradeFormAccountChange} 
           loading={loading}
         />
       )}
