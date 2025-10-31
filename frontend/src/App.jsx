@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Services
 import { userService } from './services/userService';
 import { accountService } from './services/accountService';
 import { stockService } from './services/stockService';
 import { tradeService } from './services/tradeService';
 
-// Components
 import LoginScreen from './components/auth/LoginScreen';
 import Header from './components/common/Header';
 import Navigation from './components/common/Navigation';
@@ -18,13 +16,13 @@ import DepositModal from './components/modals/DepositModal';
 import StockDetailModal from './components/modals/StockDetailModal';
 import TransferModal from './components/modals/TransferModal';
 
-// Pages
 import DashboardPage from './pages/DashboardPage';
 import AccountsPage from './pages/AccountsPage';
 import TradingPage from './pages/TradingPage';
 import StocksPage from './pages/StocksPage';
 import ProfilePage from './pages/ProfilePage';
 import TransfersPage from './pages/TransfersPage';
+import FeedsPage from  './pages/FeedsPage';
 
 
 function App() {
@@ -45,7 +43,6 @@ function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  // Modal states
   const [showUserModal, setShowUserModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showTradeModal, setShowTradeModal] = useState(false);
@@ -56,16 +53,12 @@ function App() {
   const [editingAccount, setEditingAccount] = useState(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
   
-
-  // Form states
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', type: 'user' });
   const [accountForm, setAccountForm] = useState({ name: '', user_id: '' });
   const [tradeForm, setTradeForm] = useState({ account_id: '', stock_id: '', quantity: '', price: '', description: '', tradeAmount: '' });
   const [depositForm, setDepositForm] = useState({ amount: '', description: '' });
   const [transferForm, setTransferForm] = useState({from_account_id: '', to_account_id: '', amount: '', description: ''});
 
-
-  // Loading and error states
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -131,7 +124,6 @@ function App() {
     }
   }, []);
 
-  // NEW: Function to fetch positions for trade modal
   const fetchPositionsForTradeModal = async (accountId) => {
     try {
       const positionsData = await tradeService.getAccountPositions(accountId);
@@ -593,7 +585,7 @@ function App() {
           />
         )}
         {!loading && activeTab === 'feed' && (
-          <FeedPage
+          <FeedsPage
             onTrade={openTradeModal}
             accounts={userAccounts}
             onViewStock={openStockDetail}

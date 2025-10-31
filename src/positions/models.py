@@ -15,29 +15,18 @@ class Position(Base):
     account_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("accounts.id", ondelete="CASCADE", onupdate="CASCADE"),
-        primary_key=True  # Part 1 of composite key
-    )
+        primary_key=True)
     
     stock_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("stocks.id", ondelete="CASCADE", onupdate="CASCADE"),
-        primary_key=True  # Part 2 of composite key
-    )
+        primary_key=True)
     
     quantity: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     average_purchase_price: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # Relationships - Child
     account: Mapped["Account"] = relationship("Account", back_populates="positions")

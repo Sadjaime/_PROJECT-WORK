@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Users, Star, ShoppingCart, Award, Clock, Eye } from 'lucide-react';
 import { feedService } from '../services/feedService';
 
-function FeedPage({ onTrade, accounts, onViewStock, stocks }) {
+function FeedsPage({ onTrade, accounts, onViewStock, stocks }) {
   const [topTraders, setTopTraders] = useState([]);
   const [recentTrades, setRecentTrades] = useState([]);
   const [trendingStocks, setTrendingStocks] = useState([]);
@@ -359,4 +359,4 @@ function FeedPage({ onTrade, accounts, onViewStock, stocks }) {
   );
 }
 
-export default FeedPage;
+export default FeedsPage;
