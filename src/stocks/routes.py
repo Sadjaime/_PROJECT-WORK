@@ -40,10 +40,10 @@ async def get_market_overview(session: AsyncSession = Depends(get_async_session)
     return overview
 
 
-@router.get("/most-traded", response_model=list[dict])
+@router.get("/most-traded", response_model=dict)
 async def get_most_traded_stocks(limit: int = 10, session: AsyncSession = Depends(get_async_session)):
     most_traded_stocks = await StockService.get_most_traded_stocks(session, limit)
-    return most_traded_stocks
+    return {"count":len(most_traded_stocks), "stocks": most_traded_stocks}
 
 
 @router.get("/search", response_model=list[StockResponse])

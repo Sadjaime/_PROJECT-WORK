@@ -197,7 +197,6 @@ class StockService:
     
     @staticmethod
     async def get_most_traded_stocks(session: AsyncSession, limit: int = 10) -> list[dict]:
-        """Get most traded stocks by number of holders and total quantity"""
         query = select(
             Stock.id,
             Stock.name,
@@ -210,23 +209,57 @@ class StockService:
          .group_by(Stock.id, Stock.name, Stock.symbol, Stock.average_price) \
          .order_by(desc('holder_count'), desc('total_quantity')) \
          .limit(limit)
-        
+
         result = await session.execute(query)
         rows = result.all()
-        
-        return [
-            {
-                "stock": {
-                    "id": row.id,
-                    "name": row.name,
-                    "symbol": row.symbol,
-                    "average_price": row.average_price
-                },
-                "holder_count": row.holder_count,
-                "total_quantity": float(row.total_quantity) if row.total_quantity else 0.0
-            }
-            for row in rows
-        ]
+        if not rows:
+            return []
+
+        ids = [int(r.id) for r in rows]
+
+        # fetch full Stock objects so we can include price_history and timestamps
+        stocks_query = select(Stock).where(Stock.id.in_(ids))
+        stocks_result = await session.scalars(stocks_query)
+        stocks_list = stocks_result.all()
+        stock_by_id = {s.id: s for s in stocks_list}
+
+        enriched: list[dict] = []
+        for row in rows:
+            stock_obj = stock_by_id.get(int(row.id))
+            price_history = getattr(stock_obj, "price_history", {}) if stock_obj else {}
+            # compute current/last prices if history exists, else fallback to average_price
+            if isinstance(price_history, dict) and len(price_history) >= 2:
+                sorted_dates = sorted(price_history.keys())
+                last_price = float(price_history[sorted_dates[-2]])
+                current_price = float(price_history[sorted_dates[-1]])
+                price_change = current_price - last_price
+                price_change_percent = (price_change / last_price * 100) if last_price > 0 else 0.0
+                period_start = sorted_dates[-2]
+                period_end = sorted_dates[-1]
+            else:
+                current_price = float(row.average_price) if row.average_price is not None else (float(getattr(stock_obj, "average_price", 0.0)) if stock_obj else 0.0)
+                last_price = current_price
+                price_change = 0.0
+                price_change_percent = 0.0
+                period_start = None
+                period_end = None
+
+            enriched.append({
+                "id": int(row.id),
+                "name": row.name,
+                "symbol": row.symbol,
+                "current_price": float(current_price),
+                "last_price": float(last_price),
+                "price_change": round(price_change, 4),
+                "price_change_percent": round(price_change_percent, 2),
+                "price_history": price_history or {},
+                "period_start": period_start,
+                "period_end": period_end,
+                "holder_count": int(row.holder_count) if row.holder_count is not None else 0,
+                "total_quantity": float(row.total_quantity) if row.total_quantity is not None else 0.0
+            })
+
+        return enriched[:limit]
     
     @staticmethod
     async def get_market_overview(session: AsyncSession) -> Dict:

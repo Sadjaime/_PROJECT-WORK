@@ -91,27 +91,27 @@ function StocksPage({ stocks, topPerformers, worstPerformers, mostTraded, onTrad
           </h3>
           {mostTraded && mostTraded.length > 0 ? (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {mostTraded.map((item, index) => (
+              {mostTraded.map((stock, index) => (
                 <div 
-                  key={item.stock.id} 
+                  key={stock.id} 
                   className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition cursor-pointer" 
-                  onClick={() => onViewStock(item.stock)}
+                  onClick={() => onViewStock(stock)}
                 >
                   <div className="flex items-center space-x-3">
                     <div className="bg-yellow-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
                       {index + 1}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{item.stock.name}</p>
-                      <p className="text-xs text-gray-500">{item.stock.symbol || `STK${item.stock.id}`}</p>
+                      <p className="font-semibold text-gray-900">{stock.name}</p>
+                      <p className="text-xs text-gray-500">{stock.symbol || `STK${stock.id}`}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center text-yellow-700 mb-1">
                       <Users className="w-4 h-4 mr-1" />
-                      <span className="font-bold">{item.holder_count}</span>
+                      <span className="font-bold">{stock.holder_count}</span>
                     </div>
-                    <p className="text-xs text-gray-600">{item.total_quantity.toFixed(2)} shares</p>
+                    <p className="text-xs text-gray-600">{stock.total_quantity.toFixed(2)} shares</p>
                   </div>
                 </div>
               ))}
