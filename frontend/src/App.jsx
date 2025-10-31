@@ -34,6 +34,7 @@ function App() {
   const [stocks, setStocks] = useState([]);
   const [topPerformers, setTopPerformers] = useState([]);
   const [worstPerformers, setWorstPerformers] = useState([]);
+  const [mostTraded, setMostTraded] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [selectedStock, setSelectedStock] = useState(null);
   const [accountBalances, setAccountBalances] = useState({});
@@ -72,12 +73,13 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const [usersData, accountsData, stocksData, topData, worstData] = await Promise.all([
+      const [usersData, accountsData, stocksData, topData, worstData, mostTradedData] = await Promise.all([
         userService.getAll(),
         accountService.getAll(),
         stockService.getAll(),
         stockService.getTopPerformers(10),
-        stockService.getWorstPerformers(10)
+        stockService.getWorstPerformers(10),
+        stockService.getMostTraded(10)
       ]);
 
       setUsers(usersData);
@@ -85,6 +87,7 @@ function App() {
       setStocks(stocksData);
       setTopPerformers(topData);
       setWorstPerformers(worstData);
+      setMostTraded(mostTradedData);
 
       const userAccountsData = accountsData.filter(a => a.user_id === currentUser.id);
       await fetchAccountBalances(userAccountsData);
@@ -378,21 +381,21 @@ function App() {
     }
   };
 
-  // UPDATED: openTradeModal now fetches positions for SELL mode
-  const openTradeModal = async (mode, account = null) => {
+  const openTradeModal = async (mode, account = null, stock = null) => {
     setTradeMode(mode);
     const targetAccount = account || selectedAccount;
+    let targetStock = stock || selectedStock;
+
     
     setTradeForm({ 
       account_id: targetAccount?.id || '', 
-      stock_id: '', 
+      stock_id: targetStock.id|| '', 
       quantity: '', 
       price: '', 
       description: '',
       tradeAmount: ''
     });
 
-    // If selling, fetch positions for the target account
     if (mode === 'SELL_STOCK' && targetAccount?.id) {
       await fetchPositionsForTradeModal(targetAccount.id);
     } else {
@@ -402,22 +405,30 @@ function App() {
     setShowTradeModal(true);
   };
 
-  // NEW: Handle account change in trade modal
   const handleTradeFormAccountChange = async (accountId) => {
+    const prevStockId = tradeForm.stock_id;
     setTradeForm({ 
       ...tradeForm, 
       account_id: accountId, 
-      stock_id: '', 
       quantity: '', 
       price: '',
       tradeAmount: ''
     });
 
-    // If in sell mode, fetch positions for the newly selected account
     if (tradeMode === 'SELL_STOCK' && accountId) {
-      await fetchPositionsForTradeModal(parseInt(accountId));
-    }
-  };
+      const positions = await fetchPositionsForTradeModal(accountId);
+      const ownsSelected = positions && positions.some(p => String(p.stock_id) === String(prevStockId));
+      if (ownsSelected) {
+        setTradeForm(f => ({ ...f, stock_id: prevStockId }));
+      } else {
+        setTradeForm(f => ({ ...f, stock_id: '' }));
+      }
+      setTradeModalPositions(positions || []);
+      } else {
+        setTradeForm(f => ({ ...f, stock_id: prevStockId }));
+        setTradeModalPositions([]);
+      }
+    };
 
   const openDepositModal = (account) => {
     setSelectedAccount(account);
@@ -528,6 +539,7 @@ function App() {
             accountTrades={accountTrades}
             topPerformers={topPerformers}
             worstPerformers={worstPerformers}
+            mostTraded={mostTraded}
             onSelectAccount={setSelectedAccount}
           />
         )}
@@ -574,6 +586,7 @@ function App() {
             stocks={stocks}
             topPerformers={topPerformers}
             worstPerformers={worstPerformers}
+            mostTraded={mostTraded}
             onTrade={openTradeModal} 
             accounts={userAccounts}
             onViewStock={openStockDetail}
