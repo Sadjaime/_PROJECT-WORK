@@ -592,6 +592,14 @@ function App() {
             onViewStock={openStockDetail}
           />
         )}
+        {!loading && activeTab === 'feed' && (
+          <FeedPage
+            onTrade={openTradeModal}
+            accounts={userAccounts}
+            onViewStock={openStockDetail}
+            stocks={stocks}
+          />
+        )}
 
         {!loading && activeTab === 'transfers' && (
           <TransfersPage

@@ -8,6 +8,7 @@ from src.accounts.routes import router as account_router
 from src.stocks.routes import router as stock_router
 from src.trades.routes import router as trades_router
 from src.positions.routes import router as positions_router
+from src.feeds.routes import router as feeds_router
 
 app = FastAPI(title=settings.app_name, description=settings.description, version="1.0.0")
 
@@ -24,7 +25,7 @@ app.include_router(account_router)
 app.include_router(stock_router)
 app.include_router(trades_router)
 app.include_router(positions_router)
-
+app.include_router(feeds_router)
 
 @app.get("/", tags=["Root"])
 async def root():

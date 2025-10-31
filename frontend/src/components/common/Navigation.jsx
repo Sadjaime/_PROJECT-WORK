@@ -1,7 +1,7 @@
 import React from 'react';
 
 function Navigation({ activeTab, setActiveTab, mobileMenuOpen, setMobileMenuOpen }) {
-  const tabs = ['dashboard', 'accounts', 'trading', 'stocks', 'transfers', 'profile'];
+  const tabs = ['dashboard', 'accounts', 'trading', 'stocks', 'feed', 'transfers', 'profile'];
 
   return (
     <nav className={`bg-white border-b border-gray-200 ${mobileMenuOpen ? 'block' : 'hidden'} sm:block`}>
