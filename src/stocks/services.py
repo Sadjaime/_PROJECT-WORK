@@ -81,38 +81,7 @@ class StockService:
         result = await session.scalars(search_query)
         return list(result.all())
 
-    @staticmethod
-    async def get_most_traded_stocks(session: AsyncSession, limit: int = 10) -> list[dict]:
-        """Get most traded stocks by number of holders and total quantity"""
-        query = select(
-            Stock.id,
-            Stock.name,
-            Stock.symbol,
-            Stock.average_price,
-            func.count(Position.account_id).label('holder_count'),
-            func.sum(Position.quantity).label('total_quantity')
-        ).join(Position, Stock.id == Position.stock_id) \
-         .where(Position.quantity > 0) \
-         .group_by(Stock.id, Stock.name, Stock.symbol, Stock.average_price) \
-         .order_by(desc('holder_count'), desc('total_quantity')) \
-         .limit(limit)
-        
-        result = await session.execute(query)
-        rows = result.all()
-        
-        return [
-            {
-                "stock": {
-                    "id": row.id,
-                    "name": row.name,
-                    "symbol": row.symbol,
-                    "average_price": row.average_price
-                },
-                "holder_count": row.holder_count,
-                "total_quantity": float(row.total_quantity) if row.total_quantity else 0.0
-            }
-            for row in rows
-        ]
+    
 
     @staticmethod
     async def get_stock_holders(stock_id: int, session: AsyncSession) -> dict:
@@ -225,6 +194,39 @@ class StockService:
         performers.sort(key=lambda x: x["price_change_percent"])
         
         return performers[:limit]
+    
+    @staticmethod
+    async def get_most_traded_stocks(session: AsyncSession, limit: int = 10) -> list[dict]:
+        """Get most traded stocks by number of holders and total quantity"""
+        query = select(
+            Stock.id,
+            Stock.name,
+            Stock.symbol,
+            Stock.average_price,
+            func.count(Position.account_id).label('holder_count'),
+            func.sum(Position.quantity).label('total_quantity')
+        ).join(Position, Stock.id == Position.stock_id) \
+         .where(Position.quantity > 0) \
+         .group_by(Stock.id, Stock.name, Stock.symbol, Stock.average_price) \
+         .order_by(desc('holder_count'), desc('total_quantity')) \
+         .limit(limit)
+        
+        result = await session.execute(query)
+        rows = result.all()
+        
+        return [
+            {
+                "stock": {
+                    "id": row.id,
+                    "name": row.name,
+                    "symbol": row.symbol,
+                    "average_price": row.average_price
+                },
+                "holder_count": row.holder_count,
+                "total_quantity": float(row.total_quantity) if row.total_quantity else 0.0
+            }
+            for row in rows
+        ]
     
     @staticmethod
     async def get_market_overview(session: AsyncSession) -> Dict:
