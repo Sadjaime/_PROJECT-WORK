@@ -1,4 +1,4 @@
-Installazione dipendenze
+FastAPI Fintech Web App
 
-pip install -r requirements.txt
+This is part of a project at university. 
 
