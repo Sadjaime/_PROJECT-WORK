@@ -152,13 +152,13 @@ function FeedsPage({ onTrade, accounts, onViewStock, stocks }) {
                     <div className="bg-blue-50 rounded-lg p-3">
                       <p className="text-xs text-blue-800 mb-1">Total Invested</p>
                       <p className="text-lg font-bold text-blue-900">
-                        ${trader.total_invested.toFixed(2)}
+                        €{trader.total_invested.toFixed(2)}
                       </p>
                     </div>
                     <div className="bg-purple-50 rounded-lg p-3">
                       <p className="text-xs text-purple-800 mb-1">Current Value</p>
                       <p className="text-lg font-bold text-purple-900">
-                        ${trader.current_value.toFixed(2)}
+                        €{trader.current_value.toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -176,7 +176,7 @@ function FeedsPage({ onTrade, accounts, onViewStock, stocks }) {
                         <p className={`text-2xl font-bold ${
                           trader.profit_loss >= 0 ? 'text-green-900' : 'text-red-900'
                         }`}>
-                          {trader.profit_loss >= 0 ? '+' : ''}${trader.profit_loss.toFixed(2)}
+                          {trader.profit_loss >= 0 ? '+' : ''}€{trader.profit_loss.toFixed(2)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -249,7 +249,7 @@ function FeedsPage({ onTrade, accounts, onViewStock, stocks }) {
                     <div className="text-right ml-4">
                       <p className="text-sm text-gray-500 mb-1">Trade Value</p>
                       <p className="text-lg font-bold text-gray-900">
-                        ${trade.total_amount.toFixed(2)}
+                        €{trade.total_amount.toFixed(2)}
                       </p>
                       <button
                         onClick={() => handleBuySameStock(trade.stock_id)}
@@ -305,7 +305,7 @@ function FeedsPage({ onTrade, accounts, onViewStock, stocks }) {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Current Price</span>
                       <span className="font-bold text-gray-900">
-                        ${stock.current_price.toFixed(2)}
+                        €{stock.current_price.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -323,7 +323,7 @@ function FeedsPage({ onTrade, accounts, onViewStock, stocks }) {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Total Invested</span>
                       <span className="font-bold text-green-600">
-                        ${stock.total_invested.toFixed(2)}
+                        €{stock.total_invested.toFixed(2)}
                       </span>
                     </div>
                   </div>
