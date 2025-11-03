@@ -305,7 +305,7 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
             </div>
             {mode === 'BUY_STOCK' ? (
               <p className="text-xs text-gray-500 mt-1">
-                Current market price is pre-filled but you can adjust it
+                Current market price
               </p>
             ) : (
               <p className="text-xs text-gray-500 mt-1">
