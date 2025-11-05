@@ -217,7 +217,6 @@ class StockService:
 
         ids = [int(r.id) for r in rows]
 
-        # fetch full Stock objects so we can include price_history and timestamps
         stocks_query = select(Stock).where(Stock.id.in_(ids))
         stocks_result = await session.scalars(stocks_query)
         stocks_list = stocks_result.all()
@@ -227,7 +226,7 @@ class StockService:
         for row in rows:
             stock_obj = stock_by_id.get(int(row.id))
             price_history = getattr(stock_obj, "price_history", {}) if stock_obj else {}
-            # compute current/last prices if history exists, else fallback to average_price
+
             if isinstance(price_history, dict) and len(price_history) >= 2:
                 sorted_dates = sorted(price_history.keys())
                 last_price = float(price_history[sorted_dates[-2]])
