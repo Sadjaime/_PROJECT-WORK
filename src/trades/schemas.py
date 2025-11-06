@@ -71,7 +71,6 @@ class TradeResponse(CustomBase):
 
 
 class TransferResponse(CustomBase):
-    """Schema for transfer response"""
     transfer_id: int
     from_account_id: int
     from_account_name: str
@@ -84,14 +83,12 @@ class TransferResponse(CustomBase):
 
 
 class BalanceResponse(CustomBase):
-    """Schema for account balance response"""
     account_id: PositiveInt
     balance: float
     last_updated: datetime
 
 
 class DetailedBalanceResponse(CustomBase):
-    """Schema for detailed balance breakdown"""
     account_id: int
     balance: float
     total_deposits: float
