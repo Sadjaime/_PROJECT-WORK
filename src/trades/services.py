@@ -11,14 +11,12 @@ from typing import Dict, List
 from datetime import datetime
 import logging
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 
 class TradeService:
     @staticmethod
     async def calculate_balance(account_id: int, session: AsyncSession) -> float:
-        """Calculate account balance including transfers"""
         query = select(Trade).where(Trade.account_id == account_id)
         result = await session.scalars(query)
         trades = result.all()
@@ -34,7 +32,6 @@ class TradeService:
 
     @staticmethod
     async def process_money_trade(payload: MoneyTradeCreate, session: AsyncSession) -> Trade:
-        """Process deposit or withdrawal"""
         account_query = select(Account).where(Account.id == payload.account_id)
         account_result = await session.scalars(account_query)
         account = account_result.first()
@@ -66,15 +63,12 @@ class TradeService:
 
     @staticmethod
     async def process_stock_trade(payload: StockTradeCreate, session: AsyncSession) -> Trade:
-        """Process stock buy or sell"""
-        # Validate account exists
         account_query = select(Account).where(Account.id == payload.account_id)
         account_result = await session.scalars(account_query)
         account = account_result.first()
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
         
-        # Validate stock exists
         stock_query = select(Stock).where(Stock.id == payload.stock_id)
         stock_result = await session.scalars(stock_query)
         stock = stock_result.first()
@@ -119,7 +113,6 @@ class TradeService:
         
         session.add(new_trade)
         
-        # Update position using UPSERT
         await TradeService._update_position_upsert(
             payload.account_id, 
             payload.stock_id, 
@@ -142,15 +135,10 @@ class TradeService:
         trade_type: str, 
         session: AsyncSession
     ):
-        """
-        Update stock position using PostgreSQL's UPSERT (ON CONFLICT)
-        This is GUARANTEED to work regardless of whether position exists
-        """
         logger.info(f"_update_position_upsert: account={account_id}, stock={stock_id}, "
                    f"qty={quantity}, price={price}, type={trade_type}")
         
         if trade_type == "BUY_STOCK":
-            # Use PostgreSQL's INSERT ... ON CONFLICT DO UPDATE
             stmt = insert(Position).values(
                 account_id=account_id,
                 stock_id=stock_id,
@@ -158,7 +146,6 @@ class TradeService:
                 average_purchase_price=price
             )
             
-            # If position exists (conflict on primary key), update it
             stmt = stmt.on_conflict_do_update(
                 index_elements=['account_id', 'stock_id'],
                 set_={
@@ -176,7 +163,6 @@ class TradeService:
             logger.info(f"UPSERT completed successfully")
         
         elif trade_type == "SELL_STOCK":
-            # For SELL, we need to query and update/delete
             logger.info(f"Processing SELL_STOCK")
             
             position_query = (
@@ -192,11 +178,9 @@ class TradeService:
                 raise HTTPException(status_code=400, detail="No position found to sell")
             
             logger.info(f"Current position qty: {position.quantity}, selling: {quantity}")
-            
-            # Reduce quantity
+
             position.quantity -= quantity
             
-            # If all shares sold, delete the position
             if position.quantity <= 0:
                 logger.info(f"All shares sold, deleting position")
                 await session.delete(position)
@@ -205,8 +189,6 @@ class TradeService:
 
     @staticmethod
     async def transfer_between_accounts(payload: AccountTransferCreate, session: AsyncSession) -> Dict:
-        """Transfer money from one account to another"""
-        # Validate both accounts exist
         from_account_query = select(Account).where(Account.id == payload.from_account_id)
         from_account_result = await session.scalars(from_account_query)
         from_account = from_account_result.first()
@@ -221,7 +203,6 @@ class TradeService:
         if not to_account:
             raise HTTPException(status_code=404, detail=f"Destination account {payload.to_account_id} not found")
         
-        # Check sufficient balance in source account
         current_balance = await TradeService.calculate_balance(payload.from_account_id, session)
         if current_balance < payload.amount:
             raise HTTPException(
@@ -229,7 +210,6 @@ class TradeService:
                 detail=f"Insufficient funds. Available: ${current_balance:.2f}, Required: ${payload.amount:.2f}"
             )
         
-        # Create TRANSFER_OUT transaction for source account
         transfer_out = Trade(
             account_id=payload.from_account_id,
             type="TRANSFER_OUT",
@@ -238,7 +218,6 @@ class TradeService:
             to_account_id=payload.to_account_id
         )
         
-        # Create TRANSFER_IN transaction for destination account
         transfer_in = Trade(
             account_id=payload.to_account_id,
             type="TRANSFER_IN",
@@ -271,7 +250,6 @@ class TradeService:
         session: AsyncSession, 
         trade_type: str | None = None
     ) -> list[Trade]:
-        """Get all trades for an account"""
         query = select(Trade).where(Trade.account_id == account_id)
         
         if trade_type:
@@ -283,7 +261,6 @@ class TradeService:
 
     @staticmethod
     async def get_account_transfers(account_id: int, session: AsyncSession) -> List[Dict]:
-        """Get all transfers (in and out) for a specific account"""
         query = select(Trade).where(
             and_(
                 Trade.account_id == account_id,
@@ -296,7 +273,6 @@ class TradeService:
         
         transfers = []
         for trade in trades:
-            # Get the other account info
             other_account_id = trade.to_account_id if trade.type == "TRANSFER_OUT" else trade.from_account_id
             
             if other_account_id:
@@ -318,7 +294,7 @@ class TradeService:
                     "timestamp": trade.timestamp,
                     "type": "outgoing"
                 })
-            else:  # TRANSFER_IN
+            else:
                 transfers.append({
                     "transfer_id": trade.id,
                     "from_account_id": other_account_id,
@@ -334,7 +310,6 @@ class TradeService:
 
     @staticmethod
     async def get_detailed_balance(account_id: int, session: AsyncSession) -> Dict:
-        """Get detailed balance breakdown for an account"""
         query = select(Trade).where(Trade.account_id == account_id)
         result = await session.scalars(query)
         trades = result.all()
