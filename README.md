@@ -71,7 +71,7 @@ The script is idempotent and creates a demo user, sample users, accounts, stocks
 Demo login:
 
 ```text
-demo@fintech.test
+demo@fintechdemo.app
 DemoPass123
 ```
 

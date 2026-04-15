@@ -22,7 +22,7 @@ from src.users.models import User
 DEMO_PASSWORD = "DemoPass123"
 
 USERS = [
-    {"name": "Demo Investor", "email": "demo@fintech.test", "password": DEMO_PASSWORD, "type": "user"},
+    {"name": "Demo Investor", "email": "demo@fintechdemo.app", "password": DEMO_PASSWORD, "type": "user"},
     {"name": "Maria Bianchi", "email": "maria.bianchi@example.com", "password": DEMO_PASSWORD, "type": "user"},
     {"name": "Luca Ferrari", "email": "luca.ferrari@example.com", "password": DEMO_PASSWORD, "type": "user"},
     {"name": "Sofia Ricci", "email": "sofia.ricci@example.com", "password": DEMO_PASSWORD, "type": "user"},
@@ -177,13 +177,13 @@ async def seed_demo_data() -> None:
         ]
 
         for user in users:
-            account_count = 2 if user.email == "demo@fintech.test" else 1
+            account_count = 2 if user.email == "demo@fintechdemo.app" else 1
             for account_name in ACCOUNT_NAMES[:account_count]:
                 account = await get_or_create_account(session, user.id, account_name)
                 await seed_account_trades(session, account, stocks, rng)
 
     print("Demo data is ready.")
-    print("Demo login: demo@fintech.test / DemoPass123")
+    print("Demo login: demo@fintechdemo.app / DemoPass123")
 
 
 if __name__ == "__main__":

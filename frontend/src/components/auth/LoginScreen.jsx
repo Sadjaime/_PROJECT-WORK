@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { DollarSign, Eye, EyeOff } from 'lucide-react';
 
 function LoginScreen({ onLogin, onSignup }) {
-  const demoEmail = 'demo@fintech.test';
+  const demoEmail = 'demo@fintechdemo.app';
   const demoPassword = 'DemoPass123';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
