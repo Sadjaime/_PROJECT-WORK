@@ -23,10 +23,18 @@ DEMO_PASSWORD = "DemoPass123"
 
 USERS = [
     {"name": "Demo Investor", "email": "demo@fintechdemo.app", "password": DEMO_PASSWORD, "type": "user"},
-    {"name": "Maria Bianchi", "email": "maria.bianchi@example.com", "password": DEMO_PASSWORD, "type": "user"},
-    {"name": "Luca Ferrari", "email": "luca.ferrari@example.com", "password": DEMO_PASSWORD, "type": "user"},
-    {"name": "Sofia Ricci", "email": "sofia.ricci@example.com", "password": DEMO_PASSWORD, "type": "user"},
+    {"name": "Maria Bianchi", "email": "maria.bianchi@fintechdemo.app", "password": DEMO_PASSWORD, "type": "user"},
+    {"name": "Luca Ferrari", "email": "luca.ferrari@fintechdemo.app", "password": DEMO_PASSWORD, "type": "user"},
+    {"name": "Sofia Ricci", "email": "sofia.ricci@fintechdemo.app", "password": DEMO_PASSWORD, "type": "user"},
 ]
+
+LEGACY_EMAILS = {
+    "demo@fintech.test": "demo@fintechdemo.app",
+    "maria.bianchi@example.com": "maria.bianchi@fintechdemo.app",
+    "luca.ferrari@example.com": "luca.ferrari@fintechdemo.app",
+    "giulia.romano@example.com": "giulia.romano@fintechdemo.app",
+    "sofia.ricci@example.com": "sofia.ricci@fintechdemo.app",
+}
 
 STOCKS = [
     ("Apple Inc.", "AAPL", 214.42),
@@ -63,6 +71,8 @@ def price_history(current_price: float, seed: int) -> dict[str, float]:
 
 
 async def get_or_create_user(session, user_data: dict) -> User:
+    await normalize_legacy_demo_emails(session)
+
     result = await session.scalars(select(User).where(User.email == user_data["email"]))
     user = result.first()
     if user:
@@ -73,6 +83,23 @@ async def get_or_create_user(session, user_data: dict) -> User:
     await session.commit()
     await session.refresh(user)
     return user
+
+
+async def normalize_legacy_demo_emails(session) -> None:
+    for legacy_email, replacement_email in LEGACY_EMAILS.items():
+        legacy_result = await session.scalars(select(User).where(User.email == legacy_email))
+        legacy_user = legacy_result.first()
+        if not legacy_user:
+            continue
+
+        replacement_result = await session.scalars(select(User).where(User.email == replacement_email))
+        replacement_user = replacement_result.first()
+        if replacement_user and replacement_user.id != legacy_user.id:
+            continue
+
+        legacy_user.email = replacement_email
+        legacy_user.password = DEMO_PASSWORD
+        await session.commit()
 
 
 async def get_or_create_stock(session, name: str, symbol: str, average_price: float, seed: int) -> Stock:

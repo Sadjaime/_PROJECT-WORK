@@ -19,7 +19,7 @@ class UserCreate(CustomBase):
 class UserResponse(CustomBase):
     id: PositiveInt
     name: str
-    email: EmailStr
+    email: str
     type: str
     created_at: datetime
 
