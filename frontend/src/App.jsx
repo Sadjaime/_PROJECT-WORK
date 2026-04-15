@@ -4,6 +4,7 @@ import { userService } from './services/userService';
 import { accountService } from './services/accountService';
 import { stockService } from './services/stockService';
 import { tradeService } from './services/tradeService';
+import { API_BASE_URL } from './utils/constants';
 
 import LoginScreen from './components/auth/LoginScreen';
 import Header from './components/common/Header';
@@ -164,7 +165,7 @@ function App() {
       setError(null);
     } catch (error) {
       console.error('Login error:', error);
-      alert('Login failed. Make sure the backend is running on http://localhost:8000');
+      alert(`Login failed. Make sure the backend is reachable at ${API_BASE_URL}`);
     }
   };
 
