@@ -19,11 +19,7 @@ import src.positions.models
 config = context.config
 
 section = config.config_ini_section
-config.set_section_option(section, "DB_HOST", str(settings.db_host))
-config.set_section_option(section, "DB_PORT", str(settings.db_port))
-config.set_section_option(section, "DB_USER", str(settings.db_user))
-config.set_section_option(section, "DB_NAME", str(settings.db_name))
-config.set_section_option(section, "DB_PASS", str(settings.db_pass.get_secret_value()))
+config.set_main_option("sqlalchemy.url", settings.async_database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
