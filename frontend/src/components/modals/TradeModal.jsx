@@ -28,6 +28,8 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
   const ownedPosition = mode === 'SELL_STOCK' 
     ? accountOwnedStocks.find(s => s.id === parseInt(form.stock_id))
     : null;
+  const selectedStockAveragePrice = selectedStock?.average_price;
+  const ownedPositionCurrentMarketPrice = ownedPosition?.currentMarketPrice;
 
   // Calculate values for SELL mode
   const currentMarketPrice = ownedPosition?.currentMarketPrice || parseFloat(form.price) || 0;
@@ -57,21 +59,24 @@ function TradeModal({ mode, form, setForm, onSubmit, onClose, accounts, stocks, 
         }));
       }
     }
-  }, [tradeAmount, pricePerShare]);
+  }, [tradeAmount, pricePerShare, form.quantity, setForm]);
 
   // Update form.price when stock is selected
   useEffect(() => {
-    if (form.stock_id && selectedStock) {
-      const price = mode === 'SELL_STOCK' && ownedPosition
-        ? currentMarketPrice
-        : selectedStock.average_price;
+    if (form.stock_id && selectedStockAveragePrice !== undefined) {
+      const price = mode === 'SELL_STOCK' && ownedPositionCurrentMarketPrice !== undefined
+        ? ownedPositionCurrentMarketPrice
+        : selectedStockAveragePrice;
+      const nextPrice = price.toString();
       
-      setForm(prevForm => ({
-        ...prevForm,
-        price: price.toString()
-      }));
+      if (form.price !== nextPrice) {
+        setForm(prevForm => ({
+          ...prevForm,
+          price: nextPrice
+        }));
+      }
     }
-  }, [form.stock_id, mode, ownedPosition, currentMarketPrice, selectedStock]);
+  }, [form.stock_id, form.price, mode, ownedPositionCurrentMarketPrice, selectedStockAveragePrice, setForm]);
 
   // Handle account selection change
   const handleAccountChange = (e) => {

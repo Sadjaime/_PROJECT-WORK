@@ -6,7 +6,7 @@ from sqlalchemy.pool import NullPool
 
 from src.config import settings as s
 
-DATABASE_URL = f"postgresql+asyncpg://{s.db_user}:{s.db_pass.get_secret_value()}@{s.db_host}:{s.db_port}/{s.db_name}"
+DATABASE_URL = s.async_database_url
 
 class Base(DeclarativeBase):
     pass

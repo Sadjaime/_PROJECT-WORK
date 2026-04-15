@@ -57,7 +57,6 @@ function App() {
   const [accountForm, setAccountForm] = useState({ name: '', user_id: '' });
   const [tradeForm, setTradeForm] = useState({ account_id: '', stock_id: '', quantity: '', price: '', description: '', tradeAmount: '' });
   const [depositForm, setDepositForm] = useState({ amount: '', description: '' });
-  const [transferForm, setTransferForm] = useState({from_account_id: '', to_account_id: '', amount: '', description: ''});
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -489,7 +488,6 @@ function App() {
   };
 
   const openTransferModal = () => {
-  setTransferForm({ from_account_id: '', to_account_id: '', amount: '', description: '' });
   setShowTransferModal(true);
   };
 

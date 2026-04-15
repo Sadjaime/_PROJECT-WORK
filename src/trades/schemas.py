@@ -5,7 +5,6 @@ from typing import Optional, Literal
 
 
 class TradeBase(CustomBase):
-    """Base schema for trades"""
     account_id: PositiveInt
     type: Literal["DEPOSIT", "WITHDRAW", "BUY_STOCK", "SELL_STOCK", "TRANSFER_OUT", "TRANSFER_IN"]
     amount: PositiveFloat
@@ -13,7 +12,6 @@ class TradeBase(CustomBase):
 
 
 class MoneyTradeCreate(CustomBase):
-    """Schema for depositing or withdrawing money"""
     account_id: PositiveInt
     type: Literal["DEPOSIT", "WITHDRAW"]
     amount: PositiveFloat = Field(..., gt=0, examples=[500.00])
@@ -21,7 +19,6 @@ class MoneyTradeCreate(CustomBase):
 
 
 class StockTradeCreate(CustomBase):
-    """Schema for buying or selling stocks"""
     account_id: PositiveInt
     stock_id: PositiveInt
     type: Literal["BUY_STOCK", "SELL_STOCK"]
@@ -38,7 +35,6 @@ class StockTradeCreate(CustomBase):
 
 
 class AccountTransferCreate(CustomBase):
-    """Schema for transferring money between accounts"""
     from_account_id: PositiveInt = Field(..., description="Source account ID")
     to_account_id: PositiveInt = Field(..., description="Destination account ID")
     amount: PositiveFloat = Field(..., gt=0, description="Amount to transfer")
@@ -53,7 +49,6 @@ class AccountTransferCreate(CustomBase):
 
 
 class TradeResponse(CustomBase):
-    """Schema for trade responses"""
     id: PositiveInt
     account_id: PositiveInt
     type: str

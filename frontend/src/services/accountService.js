@@ -24,7 +24,7 @@ export const accountService = {
   },
 
   async delete(accountId) {
-    const response = await apiCall(`/accounts/?account_id=${accountId}`, {
+    const response = await apiCall(`/accounts/${accountId}`, {
       method: 'DELETE',
     });
     return response;

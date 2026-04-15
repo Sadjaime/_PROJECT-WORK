@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowRight, ArrowLeft, Calendar, DollarSign } from 'lucide-react';
 import { tradeService } from '../services/tradeService';
 
@@ -7,13 +7,9 @@ function TransfersPage({ accounts, onOpenTransferModal }) {
   const [transfers, setTransfers] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (selectedAccount) {
-      fetchTransfers();
-    }
-  }, [selectedAccount]);
+  const fetchTransfers = useCallback(async () => {
+    if (!selectedAccount) return;
 
-  const fetchTransfers = async () => {
     setLoading(true);
     try {
       const data = await tradeService.getAccountTransfers(selectedAccount.id);
@@ -23,7 +19,11 @@ function TransfersPage({ accounts, onOpenTransferModal }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedAccount]);
+
+  useEffect(() => {
+    fetchTransfers();
+  }, [fetchTransfers]);
 
   return (
     <div className="space-y-6">

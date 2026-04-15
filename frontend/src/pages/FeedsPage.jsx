@@ -7,7 +7,6 @@ function FeedsPage({ onTrade, accounts, onViewStock, stocks }) {
   const [recentTrades, setRecentTrades] = useState([]);
   const [trendingStocks, setTrendingStocks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTrader, setSelectedTrader] = useState(null);
   const [activeTab, setActiveTab] = useState('traders');
 
   useEffect(() => {
