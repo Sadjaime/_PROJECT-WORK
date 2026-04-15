@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { DollarSign, Eye, EyeOff } from 'lucide-react';
 
 function LoginScreen({ onLogin, onSignup }) {
+  const demoEmail = 'demo@fintech.test';
+  const demoPassword = 'DemoPass123';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -62,7 +64,25 @@ function LoginScreen({ onLogin, onSignup }) {
           >
             Sign In
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setEmail(demoEmail);
+              setPassword(demoPassword);
+              onLogin(demoEmail, demoPassword);
+            }}
+            className="w-full border border-blue-600 text-blue-600 py-3 rounded-lg font-semibold hover:bg-blue-50"
+          >
+            Try Demo Account
+          </button>
         </form>
+
+        <div className="mt-4 rounded-lg bg-blue-50 border border-blue-100 p-4 text-sm text-blue-900">
+          <p className="font-semibold">Demo credentials</p>
+          <p>Email: {demoEmail}</p>
+          <p>Password: {demoPassword}</p>
+        </div>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">

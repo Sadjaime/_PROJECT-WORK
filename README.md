@@ -58,6 +58,23 @@ After creating the Render Blueprint, set these prompted environment variables:
 
 If Render assigns different service URLs, use those actual URLs instead.
 
+## Demo Data
+
+After the backend and database are deployed, seed the hosted PostgreSQL database from Render Shell:
+
+```bash
+python scripts/seed_demo_data.py
+```
+
+The script is idempotent and creates a demo user, sample users, accounts, stocks, price history, deposits, buys, sells, positions, and social feed data.
+
+Demo login:
+
+```text
+demo@fintech.test
+DemoPass123
+```
+
 ## Portfolio Notes
 
 Before sharing publicly, seed the database with demo data and avoid using real passwords or personal financial data. This is a portfolio simulator, not a production brokerage application.
